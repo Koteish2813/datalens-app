@@ -191,12 +191,16 @@ function parseInventory(ws: XLSX.WorkSheet, restaurant: string) {
   for (let i = headerRow + 1; i < data.length; i++) {
     const r = data[i]
     if (!r[0] || !r[1]) continue
-    // Latest physical date from col 23 (index 23)
-    let latestPhysical = null
+    // Latest physical date from col 23 — some rows have '-' or 'NA' meaning no physical count
+    let latestPhysical: string | null = null
     if (r[23] && r[23] instanceof Date) {
       latestPhysical = r[23].toISOString().split('T')[0]
-    } else if (r[23] && String(r[23]).includes('-')) {
-      latestPhysical = String(r[23]).split('T')[0]
+    } else if (r[23]) {
+      const val = String(r[23]).trim()
+      if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
+        latestPhysical = val.split('T')[0]
+      }
+      // '-', 'NA', or anything else = null (no physical count done)
     }
     const date = latestPhysical || new Date().toISOString().split('T')[0]
     rows.push({
