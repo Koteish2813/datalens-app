@@ -28,6 +28,8 @@ interface MasterItem {
   correct_price: number
   unit: string
   category: string
+  price_per_cs: number
+  qty_per_cs: number
 }
 
 interface RecipeWithCost extends Recipe {
@@ -66,7 +68,7 @@ export default function RecipesClient() {
   const [newIngredient, setNewIngredient] = useState({ ingredient_code:'', ingredient_name:'', ingredient_qty:'', ingredient_unit:'' })
   const [addingIngredient, setAddingIngredient] = useState(false)
   // Simulation state
-  const [simItems, setSimItems] = useState<{item_code:string; item_name:string; old_price:number; new_price:number; change_type:'amount'|'percent'; change_value:string}[]>([])
+  const [simItems, setSimItems] = useState<{item_code:string; item_name:string; unit:string; old_price:number; new_price:number; old_price_cs:number; new_price_cs:number; qty_per_cs:number; change_type:'amount'|'percent'; change_value:string}[]>([])
   const [simSearch, setSimSearch] = useState('')
   const [simYear, setSimYear] = useState(new Date().getFullYear())
   const [simMonth, setSimMonth] = useState(new Date().getMonth()+1)
@@ -80,7 +82,7 @@ export default function RecipesClient() {
     const [r, ri, mi] = await Promise.all([
       supabase.from('recipes').select('*').order('recipe_name'),
       supabase.from('recipe_ingredients').select('*'),
-      supabase.from('master_items').select('item_code, item_name, correct_price, unit, category'),
+      supabase.from('master_items').select('item_code, item_name, correct_price, unit, category, price_per_cs, qty_per_cs'),
     ])
     setRecipes(r.data ?? [])
     setIngredients(ri.data ?? [])
@@ -291,15 +293,19 @@ export default function RecipesClient() {
     setSimMonthLoading(false)
   }
 
-  function addSimItem(master: MasterItem) {
+  function addSimItem(master: any) {
     if (simItems.find(s => s.item_code === master.item_code)) return
     setSimItems(prev => [...prev, {
       item_code: master.item_code,
       item_name: master.item_name,
-      old_price: master.correct_price,
-      new_price: master.correct_price,
+      unit: master.unit || '',
+      old_price: master.correct_price || 0,
+      new_price: master.correct_price || 0,
+      old_price_cs: master.price_per_cs || 0,
+      new_price_cs: master.price_per_cs || 0,
+      qty_per_cs: master.qty_per_cs || 1,
       change_type: 'amount',
-      change_value: String(master.correct_price),
+      change_value: String(master.correct_price || 0),
     }])
     setSimSearch('')
   }
@@ -307,13 +313,38 @@ export default function RecipesClient() {
   function updateSimItem(code: string, field: string, val: string) {
     setSimItems(prev => prev.map(s => {
       if (s.item_code !== code) return s
-      const updated = { ...s, [field]: val }
-      if (field === 'change_value' || field === 'change_type') {
+      const updated: any = { ...s, [field]: val }
+
+      if (field === 'new_price_cs') {
+        // Changed case price → recalc unit price
+        const newCs = parseFloat(val) || 0
+        const qty = s.qty_per_cs || 1
+        updated.new_price = qty > 0 ? newCs / qty : 0
+        updated.change_value = String(updated.new_price)
+        updated.change_type = 'amount'
+      } else if (field === 'qty_per_cs') {
+        // Changed qty per cs → recalc unit price from case price
+        const qty = parseFloat(val) || 1
+        const cs = s.new_price_cs || s.old_price_cs || 0
+        updated.new_price = qty > 0 ? cs / qty : 0
+        updated.change_value = String(updated.new_price)
+        updated.change_type = 'amount'
+      } else if (field === 'new_price') {
+        // Changed unit price directly → recalc case price
+        const newUnit = parseFloat(val) || 0
+        const qty = parseFloat(String(s.qty_per_cs)) || 1
+        updated.new_price_cs = newUnit * qty
+        updated.change_value = val
+        updated.change_type = 'amount'
+      } else if (field === 'change_value' || field === 'change_type') {
         const cv = parseFloat(field === 'change_value' ? val : s.change_value) || 0
         const ct = field === 'change_type' ? val : s.change_type
         updated.new_price = ct === 'percent'
           ? s.old_price * (1 + cv / 100)
           : cv
+        // Also update case price
+        const qty = parseFloat(String(s.qty_per_cs)) || 1
+        updated.new_price_cs = updated.new_price * qty
       }
       return updated
     }))
@@ -366,9 +397,15 @@ export default function RecipesClient() {
     XLSX.utils.book_append_sheet(wb, ws, 'Simulation')
     // Price changes sheet
     const changes = simItems.map(s => ({
-      'Item Code': s.item_code, 'Item Name': s.item_name,
-      'Old Price': s.old_price, 'New Price': parseFloat(s.new_price.toFixed(5)),
-      'Change': s.change_type === 'percent' ? s.change_value+'%' : 'KWD '+s.change_value,
+      'Item Code': s.item_code,
+      'Item Name': s.item_name,
+      'Unit': s.unit,
+      'Old Unit Price (KWD)': parseFloat(s.old_price.toFixed(5)),
+      'New Unit Price (KWD)': parseFloat(s.new_price.toFixed(5)),
+      'Old CS Price (KWD)': parseFloat(s.old_price_cs.toFixed(3)),
+      'New CS Price (KWD)': parseFloat(s.new_price_cs.toFixed(3)),
+      'Qty per CS': s.qty_per_cs,
+      '% Change': parseFloat(s.old_price > 0 ? ((s.new_price-s.old_price)/s.old_price*100).toFixed(2) : '0'),
     }))
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(changes), 'Price Changes')
     XLSX.writeFile(wb, `Simulation_${MONTHS[simMonth-1]}_${simYear}.xlsx`)
@@ -1021,10 +1058,10 @@ export default function RecipesClient() {
                 <p className="text-sm font-semibold text-gray-700">Step 2 — Set new prices</p>
                 <p className="text-xs text-gray-400 mt-0.5">Enter either a new absolute price (KWD) or a % change</p>
               </div>
-              <table className="w-full text-xs">
+              <table className="w-full text-xs" style={{minWidth:900}}>
                 <thead className="bg-gray-50">
                   <tr>
-                    {['Item Code','Item Name','Current Price','Change Type','New Value','New Price','Remove'].map(h=>(
+                    {['Code','Item Name','Unit','Old Unit Price','New Unit Price','Old CS Price','New CS Price','Qty/CS','% Change','Remove'].map(h=>(
                       <th key={h} className="text-left px-3 py-2.5 font-medium text-gray-500 border-b border-gray-100 whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
@@ -1032,27 +1069,37 @@ export default function RecipesClient() {
                 <tbody>
                   {simItems.map((s,i) => (
                     <tr key={s.item_code} className={`border-b border-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
-                      <td className="px-3 py-2 font-mono text-gray-400">{s.item_code}</td>
-                      <td className="px-3 py-2 font-medium text-gray-700 max-w-[200px] truncate">{s.item_name}</td>
-                      <td className="px-3 py-2 font-mono text-gray-600">{s.old_price.toFixed(5)}</td>
-                      <td className="px-3 py-2">
-                        <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white"
-                          value={s.change_type} onChange={e=>updateSimItem(s.item_code,'change_type',e.target.value)}>
-                          <option value="amount">New Price (KWD)</option>
-                          <option value="percent">% Change</option>
-                        </select>
-                      </td>
+                      <td className="px-3 py-2 font-mono text-gray-400 text-xs">{s.item_code}</td>
+                      <td className="px-3 py-2 font-medium text-gray-700 max-w-[180px] truncate">{s.item_name}</td>
+                      <td className="px-3 py-2 text-gray-500">{s.unit}</td>
+                      {/* Old unit price — read only */}
+                      <td className="px-3 py-2 font-mono text-gray-400">{s.old_price.toFixed(5)}</td>
+                      {/* New unit price — editable */}
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1">
-                          {s.change_type === 'percent' && <span className="text-gray-400">%</span>}
-                          {s.change_type === 'amount' && <span className="text-gray-400 text-xs">KWD</span>}
-                          <input type="number" step="0.001" className="w-24 text-xs border border-purple-300 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                            value={s.change_value} onChange={e=>updateSimItem(s.item_code,'change_value',e.target.value)}/>
+                          <span className="text-gray-400 text-xs">KWD</span>
+                          <input type="number" step="0.00001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${s.new_price !== s.old_price ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
+                            value={s.new_price.toFixed(5)} onChange={e=>updateSimItem(s.item_code,'new_price',e.target.value)}/>
                         </div>
                       </td>
-                      <td className={`px-3 py-2 font-mono font-medium ${s.new_price > s.old_price ? 'text-red-500' : s.new_price < s.old_price ? 'text-green-600' : 'text-gray-600'}`}>
-                        {s.new_price.toFixed(5)}
-                        {s.new_price !== s.old_price && <span className="ml-1 text-xs">({s.new_price > s.old_price ? '+' : ''}{((s.new_price-s.old_price)/s.old_price*100).toFixed(1)}%)</span>}
+                      {/* Old CS price — read only */}
+                      <td className="px-3 py-2 font-mono text-gray-400">{s.old_price_cs.toFixed(3)}</td>
+                      {/* New CS price — editable, auto-calculates unit price */}
+                      <td className="px-3 py-2">
+                        <div className="flex items-center gap-1">
+                          <span className="text-gray-400 text-xs">KWD</span>
+                          <input type="number" step="0.001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${s.new_price_cs !== s.old_price_cs ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
+                            value={s.new_price_cs.toFixed(3)} onChange={e=>updateSimItem(s.item_code,'new_price_cs',e.target.value)}/>
+                        </div>
+                      </td>
+                      {/* Qty per CS — editable */}
+                      <td className="px-3 py-2">
+                        <input type="number" step="1" className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                          value={s.qty_per_cs} onChange={e=>updateSimItem(s.item_code,'qty_per_cs',e.target.value)}/>
+                      </td>
+                      {/* % change — read only calculated */}
+                      <td className={`px-3 py-2 font-mono font-medium text-xs ${s.new_price > s.old_price ? 'text-red-500' : s.new_price < s.old_price ? 'text-green-600' : 'text-gray-400'}`}>
+                        {s.old_price > 0 ? (s.new_price > s.old_price ? '+' : '')+((s.new_price-s.old_price)/s.old_price*100).toFixed(2)+'%' : '—'}
                       </td>
                       <td className="px-3 py-2">
                         <button onClick={()=>setSimItems(prev=>prev.filter(x=>x.item_code!==s.item_code))}
@@ -1062,6 +1109,7 @@ export default function RecipesClient() {
                   ))}
                 </tbody>
               </table>
+              <p className="text-xs text-gray-400 px-1 mt-2">💡 Edit either <strong>New Unit Price</strong> or <strong>New CS Price</strong> — they auto-calculate each other based on Qty/CS</p>
             </div>
           )}
 
