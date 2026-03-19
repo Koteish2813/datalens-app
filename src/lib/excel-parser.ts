@@ -188,24 +188,47 @@ function parseInventory(ws: XLSX.WorkSheet, restaurant: string) {
     if (String(data[i][0]) === 'Item Code') { headerRow = i; break }
   }
   if (headerRow === -1) return rows
+
+  // Helper: parse date — Excel stores as Date object
+  // The "Latest Physical" column (col 23) is a Date object from Excel
+  // Excel date serial -> JS Date is handled by xlsx with cellDates:true
+  // Format is YYYY-MM-DD after toISOString, which is correct calendar date
+  function parseExcelDate(val: any): string | null {
+    if (!val) return null
+    if (val instanceof Date) {
+      // Use UTC to avoid timezone shift
+      const y = val.getUTCFullYear()
+      const m = String(val.getUTCMonth() + 1).padStart(2, '0')
+      const d = String(val.getUTCDate()).padStart(2, '0')
+      return `${y}-${m}-${d}`
+    }
+    const str = String(val).trim()
+    if (str === '-' || str === 'NA' || str === '') return null
+    // Standard YYYY-MM-DD format
+    const m1 = str.match(/^(\d{4})-(\d{2})-(\d{2})/)
+    if (m1) return str.split('T')[0]
+    return null
+  }
+
+  // FIRST PASS: find the latest physical count date across ALL rows
+  let latestDate: string | null = null
   for (let i = headerRow + 1; i < data.length; i++) {
     const r = data[i]
     if (!r[0] || !r[1]) continue
-    // Latest physical date from col 23 — some rows have '-' or 'NA' meaning no physical count
-    let latestPhysical: string | null = null
-    if (r[23] && r[23] instanceof Date) {
-      latestPhysical = r[23].toISOString().split('T')[0]
-    } else if (r[23]) {
-      const val = String(r[23]).trim()
-      if (/^\d{4}-\d{2}-\d{2}/.test(val)) {
-        latestPhysical = val.split('T')[0]
-      }
-      // '-', 'NA', or anything else = null (no physical count done)
-    }
-    const date = latestPhysical || new Date().toISOString().split('T')[0]
+    const d = parseExcelDate(r[23])
+    if (d && (!latestDate || d > latestDate)) latestDate = d
+  }
+  // Use latest physical date found as the report date for ALL rows
+  const reportDate = latestDate || new Date().toISOString().split('T')[0]
+
+  // SECOND PASS: build rows — all rows use reportDate
+  for (let i = headerRow + 1; i < data.length; i++) {
+    const r = data[i]
+    if (!r[0] || !r[1]) continue
+    const latestPhysical = parseExcelDate(r[23])
     rows.push({
       restaurant_name: restaurant,
-      date,
+      date: reportDate,
       item_code: String(r[0] || ''),
       item_name: String(r[1] || ''),
       unit: String(r[2] || ''),
@@ -217,9 +240,9 @@ function parseInventory(ws: XLSX.WorkSheet, restaurant: string) {
       wastage: Number(r[15]) || 0,
       closing: Number(r[21]) || 0,
       latest_physical: latestPhysical,
-      physical_qty: r[24] === 'NA' ? null : (Number(r[24]) || 0),
-      variance: r[26] === 'NA' ? null : (Number(r[26]) || 0),
-      variance_pct: r[28] === 'NA' ? null : (Number(r[28]) || 0),
+      physical_qty: (r[24] === 'NA' || r[24] === '-' || r[24] === '') ? null : (Number(r[24]) || null),
+      variance: (r[26] === 'NA' || r[26] === '-' || r[26] === '') ? null : (Number(r[26]) || null),
+      variance_pct: (r[28] === 'NA' || r[28] === '-' || r[28] === '') ? null : (Number(r[28]) || null),
       actual_consumption: Number(r[31]) || 0,
     })
   }

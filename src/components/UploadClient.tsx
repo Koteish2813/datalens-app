@@ -23,6 +23,7 @@ export default function UploadPage() {
   const [dragging, setDragging] = useState(false)
   const [restaurants, setRestaurants] = useState<string[]>([])
   const [selectedRestaurants, setSelectedRestaurants] = useState<Record<number, string>>({})
+  const [selectedDates, setSelectedDates] = useState<Record<number, string>>({})
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Load restaurants from settings table
@@ -104,12 +105,13 @@ export default function UploadPage() {
 
   async function confirmInventoryRestaurant(idx: number) {
     const restaurant = selectedRestaurants[idx]
-    if (!restaurant) return
+    const date = selectedDates[idx]
+    if (!restaurant || !date) return
     const file = files[idx]
     if (!file.parsedRows) return
-    // Update restaurant_name in all rows
-    const rows = file.parsedRows.map(r => ({ ...r, restaurant_name: restaurant }))
-    await uploadRows(idx, 'inventory', restaurant, file.date ?? '', rows)
+    // Update restaurant_name and date in all rows
+    const rows = file.parsedRows.map(r => ({ ...r, restaurant_name: restaurant, date }))
+    await uploadRows(idx, 'inventory', restaurant, date, rows)
   }
 
   function handleDrop(e: React.DragEvent) {
@@ -202,41 +204,50 @@ export default function UploadPage() {
                 </div>
               </div>
 
-              {/* Restaurant selector for inventory */}
+              {/* Restaurant + Date selector for inventory */}
               {f.status === 'awaiting_restaurant' && (
-                <div className="flex items-center gap-3 pl-7">
-                  <div className="flex-1">
+                <div className="flex flex-col gap-3 pl-7">
+                  <div>
                     <label className="block text-xs font-medium text-amber-700 mb-1.5">
                       Which restaurant is this inventory for?
                     </label>
-                    <div className="flex gap-2">
-                      {restaurants.length > 0 ? (
-                        <select
-                          className="flex-1 text-sm border border-amber-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                          value={selectedRestaurants[i] ?? ''}
-                          onChange={e => setSelectedRestaurants(prev => ({ ...prev, [i]: e.target.value }))}
-                        >
-                          <option value="">Select restaurant…</option>
-                          {restaurants.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                      ) : (
-                        <input
-                          type="text"
-                          placeholder="Type restaurant name…"
-                          className="flex-1 text-sm border border-amber-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
-                          value={selectedRestaurants[i] ?? ''}
-                          onChange={e => setSelectedRestaurants(prev => ({ ...prev, [i]: e.target.value }))}
-                        />
-                      )}
-                      <button
-                        onClick={() => confirmInventoryRestaurant(i)}
-                        disabled={!selectedRestaurants[i]}
-                        className="bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+                    {restaurants.length > 0 ? (
+                      <select
+                        className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        value={selectedRestaurants[i] ?? ''}
+                        onChange={e => setSelectedRestaurants(prev => ({ ...prev, [i]: e.target.value }))}
                       >
-                        Upload
-                      </button>
-                    </div>
+                        <option value="">Select restaurant…</option>
+                        {restaurants.map(r => <option key={r} value={r}>{r}</option>)}
+                      </select>
+                    ) : (
+                      <input
+                        type="text"
+                        placeholder="Type restaurant name…"
+                        className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                        value={selectedRestaurants[i] ?? ''}
+                        onChange={e => setSelectedRestaurants(prev => ({ ...prev, [i]: e.target.value }))}
+                      />
+                    )}
                   </div>
+                  <div>
+                    <label className="block text-xs font-medium text-amber-700 mb-1.5">
+                      Report date (e.g. last day of the period)
+                    </label>
+                    <input
+                      type="date"
+                      className="w-full text-sm border border-amber-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-amber-400"
+                      value={selectedDates[i] ?? ''}
+                      onChange={e => setSelectedDates(prev => ({ ...prev, [i]: e.target.value }))}
+                    />
+                  </div>
+                  <button
+                    onClick={() => confirmInventoryRestaurant(i)}
+                    disabled={!selectedRestaurants[i] || !selectedDates[i]}
+                    className="bg-amber-500 hover:bg-amber-600 disabled:opacity-40 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors w-fit"
+                  >
+                    Upload
+                  </button>
                 </div>
               )}
             </div>
