@@ -25,16 +25,17 @@ export default function UploadPage() {
   const [selectedRestaurants, setSelectedRestaurants] = useState<Record<number, string>>({})
   const inputRef = useRef<HTMLInputElement>(null)
 
-  // Load existing restaurant names for the dropdown
+  // Load restaurants from settings table
   useEffect(() => {
     async function loadRestaurants() {
-      const tables = ['hourly_sales', 'delivery_sales', 'meal_count', 'menu_mix']
-      const all = new Set<string>()
-      for (const t of tables) {
-        const { data } = await supabase.from(t).select('restaurant_name').limit(100)
-        data?.forEach((r: any) => all.add(r.restaurant_name))
+      const { data } = await supabase
+        .from('restaurants')
+        .select('name')
+        .eq('active', true)
+        .order('name', { ascending: true })
+      if (data && data.length > 0) {
+        setRestaurants(data.map((r: any) => r.name))
       }
-      setRestaurants(Array.from(all).sort())
     }
     loadRestaurants()
   }, [])
