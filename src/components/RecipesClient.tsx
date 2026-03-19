@@ -11,6 +11,7 @@ interface Recipe {
   file_price: number
   file_avg_price: number
   file_last_price: number
+  selling_price: number
 }
 
 interface Ingredient {
@@ -70,6 +71,10 @@ export default function RecipesClient() {
     setRecipes(r.data ?? [])
     setIngredients(ri.data ?? [])
     setMasterItems(mi.data ?? [])
+    // Load selling prices from recipes table
+    const sp: Record<string,number> = {}
+    r.data?.forEach((rec: any) => { if (rec.recipe_code) sp[String(rec.recipe_code)] = rec.selling_price || 0 })
+    setSellingPrices(sp)
     setLoading(false)
   }
 
@@ -79,13 +84,10 @@ export default function RecipesClient() {
     const lastDay = new Date(year, month, 0).getDate()
     const dateTo = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`
 
-    // Selling prices from menu_mix
-    const { data: mm } = await supabase.from('menu_mix')
-      .select('item_number, price_sold, number_sold')
-      .gte('date', dateFrom).lte('date', dateTo)
-
+    // Selling prices from recipes table (imported from Menu_Item_Price.xlsx)
+    const { data: recipeData } = await supabase.from('recipes').select('recipe_code, selling_price')
     const sp: Record<string,number> = {}
-    mm?.forEach((r: any) => { if (r.item_number) sp[String(r.item_number)] = r.price_sold || 0 })
+    recipeData?.forEach((r: any) => { if (r.recipe_code) sp[String(r.recipe_code)] = r.selling_price || 0 })
     setSellingPrices(sp)
 
     // Meal counts
@@ -114,18 +116,43 @@ export default function RecipesClient() {
     setMonthLoading(false)
   }
 
-  // Import recipes from Excel
+  // Import recipes from Excel — handles both Recipe.xlsx and Menu_Item_Price.xlsx
   async function handleImport(file: File) {
     setImporting(true); setImportMsg('Reading file…')
     const buf = await file.arrayBuffer()
     const wb = XLSX.read(buf, { type: 'array' })
     const rows: any[] = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
 
-    // Group by recipe
+    // Detect file type by first row columns
+    const firstRow = rows[0] || {}
+    const isSellingPriceFile = 'selling' in firstRow || 'code' in firstRow
+
+    if (isSellingPriceFile) {
+      // Handle Menu_Item_Price.xlsx — update selling prices only
+      setImportMsg('Detected selling price file. Updating prices…')
+      const updates = rows
+        .filter(r => r['code'] && r['selling'])
+        .map(r => ({ recipe_code: String(r['code']).trim(), selling_price: Number(r['selling']) || 0 }))
+
+      let updated = 0
+      for (const u of updates) {
+        const { error } = await supabase.from('recipes')
+          .update({ selling_price: u.selling_price })
+          .eq('recipe_code', u.recipe_code)
+        if (!error) updated++
+      }
+      setImportMsg(`✓ Updated selling prices for ${updated} recipes!`)
+      setTimeout(() => setImportMsg(''), 4000)
+      setImporting(false)
+      loadAll()
+      return
+    }
+
+    // Handle Recipe.xlsx — full recipe import
     const recipeMap: Record<string, { header: any; ingredients: any[] }> = {}
     rows.forEach(r => {
       const code = String(r['Recipe Item Code'] || '').trim()
-      if (!code) return
+      if (!code || code === 'date') return
       if (!recipeMap[code]) recipeMap[code] = { header: r, ingredients: [] }
       if (r['Ingredient Code'] && r['Ingredient Name']) {
         recipeMap[code].ingredients.push({
@@ -146,12 +173,13 @@ export default function RecipesClient() {
       file_price: Number(v.header['Price']) || 0,
       file_avg_price: Number(v.header['Avg.Price']) || 0,
       file_last_price: Number(v.header['Last Price']) || 0,
+      selling_price: 0,
     }))
 
     setImportMsg(`Found ${recipeRows.length} recipes. Importing…`)
 
-    // Upsert recipes
-    const { error: re } = await supabase.from('recipes').upsert(recipeRows, { onConflict: 'recipe_code' })
+    // Upsert recipes (preserve existing selling_price)
+    const { error: re } = await supabase.from('recipes').upsert(recipeRows, { onConflict: 'recipe_code', ignoreDuplicates: false })
     if (re) { setImportMsg(`Error: ${re.message}`); setImporting(false); return }
 
     // Delete old ingredients and re-insert
@@ -183,7 +211,7 @@ export default function RecipesClient() {
       return { ...ing, unit_price, line_cost }
     })
     const total_cost = enriched.reduce((s, i) => s + i.line_cost, 0)
-    const selling_price = sellingPrices[recipe.recipe_code] || recipe.file_price || 0
+    const selling_price = sellingPrices[recipe.recipe_code] || 0
     const margin = selling_price - total_cost
     const margin_pct = selling_price > 0 ? (margin / selling_price) * 100 : 0
     return { ...recipe, ingredients: enriched, total_cost, selling_price, margin, margin_pct }
