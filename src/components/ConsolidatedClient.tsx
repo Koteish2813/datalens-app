@@ -38,9 +38,8 @@ export default function ConsolidatedClient() {
     const res = await fetch(`/api/consolidated?year=${year}&month=${month}&restaurant=${encodeURIComponent(selectedRestaurant)}`)
     const json = await res.json()
     setData(json)
-    // Set first restaurant as active tab
-    const rests = Object.keys(json).filter(k => k !== 'meta')
-    if (rests.length > 0) setActiveTab(rests[0])
+    // Set Total as default active tab
+    setActiveTab('__total__')
     setLoading(false)
   }
 
@@ -174,10 +173,34 @@ export default function ConsolidatedClient() {
     setDownloading(false)
   }
 
+  // Merge all restaurant data into one for total tab
+  function getTotalData(data: any, rests: string[]) {
+    if (!rests.length) return null
+    const result: any = {}
+    const sectionKeys = ['hourly_txn','hourly_amt','deliv_txn','deliv_amt','pmix_qty','pmix_amt','meal_cnt','cons_qty','waste_qty','var_qty']
+    sectionKeys.forEach(sKey => {
+      const merged: Record<string, Record<number, number>> = {}
+      rests.forEach(rest => {
+        const section = data[rest]?.[sKey] || []
+        section.forEach((row: any) => {
+          const key = row.hour || row.key || ''
+          if (!merged[key]) merged[key] = {}
+          Object.entries(row.days).forEach(([d, v]: any) => {
+            merged[key][d] = (merged[key][d] || 0) + (v || 0)
+          })
+        })
+      })
+      result[sKey] = Object.entries(merged).map(([k, days]) => ({
+        hour: k, key: k, days
+      }))
+    })
+    return result
+  }
+
   // Render current section table
   function renderTable() {
-    if (!data || activeTab === 'all') return null
-    const rd = data[activeTab]
+    if (!data) return null
+    const rd = activeTab === '__total__' ? getTotalData(data, restTabs) : data[activeTab]
     if (!rd) return null
     const section = rd[activeSection] || []
     if (!section.length) return <p className="text-sm text-gray-400 text-center py-8">No data for this section</p>
@@ -312,6 +335,10 @@ export default function ConsolidatedClient() {
         <>
           {/* Restaurant tabs */}
           <div className="flex gap-1 bg-gray-100 p-1 rounded-xl flex-wrap">
+            <button onClick={() => setActiveTab('__total__')}
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition-colors ${activeTab === '__total__' ? 'bg-blue-700 text-white shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+              ∑ Total
+            </button>
             {restTabs.map(rest => {
               const shortName = rest.split(' - ')[2] || rest.slice(0, 16)
               return (
@@ -334,21 +361,25 @@ export default function ConsolidatedClient() {
           </div>
 
           {/* Summary KPIs */}
-          {data[activeTab] && (
+          {(data[activeTab] || activeTab === '__total__') && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {[
-                { label:'Total Transactions', val: (data[activeTab].hourly_txn||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                { label:'Total Sales (KWD)',  val: (data[activeTab].hourly_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                { label:'Delivery Sales',     val: (data[activeTab].deliv_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                { label:'Total Wastage',      val: (data[activeTab].waste_qty||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-              ].map((kpi, i) => (
+              {(() => {
+                const tabData = activeTab === '__total__' ? getTotalData(data, restTabs) : data[activeTab]
+                return [
+                  { label:'Total Transactions', val: (tabData?.hourly_txn||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
+                  { label:'Total Sales (KWD)',  val: (tabData?.hourly_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
+                  { label:'Delivery Sales',     val: (tabData?.deliv_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
+                  { label:'Total Wastage',      val: (tabData?.waste_qty||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
+                ]
+              })().map((kpi, i) => (
                 <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
                   <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{kpi.label}</p>
                   <p className="text-lg font-semibold font-mono text-gray-900">
                     {typeof kpi.val === 'number' ? kpi.val.toFixed(kpi.label.includes('KWD')||kpi.label.includes('Sales')||kpi.label.includes('Wastage') ? 2 : 0) : kpi.val}
                   </p>
                 </div>
-              ))}
+              ))
+              }())}
             </div>
           )}
 
@@ -358,7 +389,7 @@ export default function ConsolidatedClient() {
               <p className="text-sm font-semibold text-gray-700">
                 {SECTIONS.find(s=>s.key===activeSection)?.label} — {MONTHS[month-1]} {year}
               </p>
-              <span className="text-xs text-gray-400">{activeTab.split(' - ')[2] || activeTab}</span>
+              <span className="text-xs text-gray-400">{activeTab === '__total__' ? 'All Restaurants Combined' : (activeTab.split(' - ')[2] || activeTab)}</span>
             </div>
             {renderTable()}
           </div>
