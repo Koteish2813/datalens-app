@@ -9,6 +9,7 @@ const navItems = [
   { href:'/reports',      label:'Reports',      roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 12l4-5 3 2 4-5 3 2M1 15h14' },
   { href:'/consolidated', label:'Consolidated',  roles:['super_admin','admin','sub_admin'],         icon:'M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { href:'/upload',    label:'Upload Data',  roles:['super_admin','admin'],                     icon:'M14 2H6a2 2 0 0 0-2 2v6M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3' },
+  { href:'/master',    label:'Master Menu',  roles:['super_admin','admin','sub_admin'],         icon:'M1 2h14v2H1zM1 6h14v2H1zM1 10h14v2H1zM1 14h14v2H1z' },
   { href:'/manage',    label:'Manage Data',  roles:['super_admin','admin'],                     icon:'M1 4h14M1 8h14M1 12h14', divider:true },
   { href:'/settings',  label:'Settings',     roles:['super_admin','admin'],                     icon:'M8 1a7 7 0 100 14A7 7 0 008 1zM8 5v3l2 2' },
   { href:'/admin',     label:'Manage Users', roles:['super_admin'],                             icon:'M10 8a3 3 0 100-6 3 3 0 000 6zM1 14s1-4 9-4' },
