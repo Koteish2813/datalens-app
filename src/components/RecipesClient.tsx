@@ -58,6 +58,13 @@ export default function RecipesClient() {
   const [month, setMonth] = useState(new Date().getMonth() + 1)
   const [monthLoading, setMonthLoading] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  // Edit state for recipe detail
+  const [editingRecipe, setEditingRecipe] = useState(false)
+  const [editSellingPrice, setEditSellingPrice] = useState('')
+  const [editIngredients, setEditIngredients] = useState<Ingredient[]>([])
+  const [savingRecipe, setSavingRecipe] = useState(false)
+  const [newIngredient, setNewIngredient] = useState({ ingredient_code:'', ingredient_name:'', ingredient_qty:'', ingredient_unit:'' })
+  const [addingIngredient, setAddingIngredient] = useState(false)
 
   useEffect(() => { loadAll() }, [])
 
@@ -196,6 +203,44 @@ export default function RecipesClient() {
     setTimeout(() => setImportMsg(''), 4000)
     setImporting(false)
     loadAll()
+  }
+
+  // Save recipe edits
+  async function saveRecipeEdit() {
+    if (!selectedRecipe) return
+    setSavingRecipe(true)
+    // Save selling price
+    await supabase.from('recipes').update({ selling_price: parseFloat(editSellingPrice) || 0 }).eq('recipe_code', selectedRecipe)
+    // Save ingredients — delete old, insert new
+    await supabase.from('recipe_ingredients').delete().eq('recipe_code', selectedRecipe)
+    if (editIngredients.length > 0) {
+      await supabase.from('recipe_ingredients').insert(editIngredients.map(i => ({
+        recipe_code: selectedRecipe,
+        ingredient_code: i.ingredient_code,
+        ingredient_name: i.ingredient_name,
+        ingredient_qty: i.ingredient_qty,
+        ingredient_unit: i.ingredient_unit,
+      })))
+    }
+    // Update local state
+    setRecipes(prev => prev.map(r => r.recipe_code === selectedRecipe ? { ...r, selling_price: parseFloat(editSellingPrice) || 0 } : r))
+    setIngredients(prev => [...prev.filter(i => i.recipe_code !== selectedRecipe), ...editIngredients])
+    setSellingPrices(prev => ({ ...prev, [selectedRecipe]: parseFloat(editSellingPrice) || 0 }))
+    setEditingRecipe(false)
+    setSavingRecipe(false)
+  }
+
+  function startEdit(calc: RecipeWithCost) {
+    setEditSellingPrice(String(calc.selling_price || ''))
+    setEditIngredients(calc.ingredients.map(i => ({
+      recipe_code: calc.recipe_code,
+      ingredient_code: i.ingredient_code,
+      ingredient_name: i.ingredient_name,
+      ingredient_qty: i.ingredient_qty,
+      ingredient_unit: i.ingredient_unit,
+    })))
+    setEditingRecipe(true)
+    setAddingIngredient(false)
   }
 
   // Build master lookup
@@ -412,75 +457,201 @@ export default function RecipesClient() {
       {/* ── RECIPE DETAIL ── */}
       {tab === 'detail' && (
         <div className="flex flex-col gap-4">
-          {/* Recipe selector */}
+          {/* Recipe selector + Edit toggle */}
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex gap-3 items-center flex-wrap">
             <label className="text-xs font-medium text-gray-500">Select Recipe:</label>
             <select className="text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white flex-1 max-w-md"
-              value={selectedRecipe || ''} onChange={e => setSelectedRecipe(e.target.value)}>
+              value={selectedRecipe || ''} onChange={e => { setSelectedRecipe(e.target.value); setEditingRecipe(false) }}>
               <option value="">Choose a recipe…</option>
               {recipes.map(r => <option key={r.recipe_code} value={r.recipe_code}>{r.recipe_name}</option>)}
             </select>
+            {selectedCalc && !editingRecipe && (
+              <button onClick={() => startEdit(selectedCalc)}
+                className="flex items-center gap-2 text-sm bg-amber-500 hover:bg-amber-600 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 16 16"><path d="M11 2l3 3-8 8H3v-3L11 2z"/></svg>
+                Edit Recipe
+              </button>
+            )}
+            {editingRecipe && (
+              <div className="flex gap-2">
+                <button onClick={saveRecipeEdit} disabled={savingRecipe}
+                  className="flex items-center gap-2 text-sm bg-green-600 hover:bg-green-700 disabled:opacity-60 text-white font-medium px-4 py-2 rounded-lg transition-colors">
+                  {savingRecipe ? <div className="w-3 h-3 border-2 border-white/40 border-t-white rounded-full animate-spin"/> : null}
+                  {savingRecipe ? 'Saving…' : 'Save Changes'}
+                </button>
+                <button onClick={() => setEditingRecipe(false)}
+                  className="text-sm border border-gray-200 text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                  Cancel
+                </button>
+              </div>
+            )}
           </div>
 
           {selectedCalc && (
             <>
-              {/* Cost summary */}
+              {/* Cost summary cards */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                {[
-                  { label:'Cost per Portion', value:'KWD '+selectedCalc.total_cost.toFixed(4), sub:'from master items' },
-                  { label:'Selling Price',     value: selectedCalc.selling_price > 0 ? 'KWD '+selectedCalc.selling_price.toFixed(4) : '—', sub:'from menu mix' },
-                  { label:'Gross Margin',      value: selectedCalc.selling_price > 0 ? 'KWD '+selectedCalc.margin.toFixed(4) : '—', sub:'' },
-                  { label:'Margin %',          value: selectedCalc.selling_price > 0 ? selectedCalc.margin_pct.toFixed(1)+'%' : '—',
-                    color: selectedCalc.selling_price > 0 ? (selectedCalc.margin_pct >= 60 ? 'text-green-600' : selectedCalc.margin_pct >= 40 ? 'text-amber-600' : 'text-red-600') : '' },
-                ].map((k,i) => (
-                  <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{k.label}</p>
-                    <p className={`text-lg font-semibold font-mono ${k.color || 'text-gray-900'}`}>{k.value}</p>
-                    {k.sub && <p className="text-xs text-gray-400 mt-0.5">{k.sub}</p>}
-                  </div>
-                ))}
+                {/* Selling price card — editable */}
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Cost per Portion</p>
+                  <p className="text-lg font-semibold font-mono text-gray-900">KWD {selectedCalc.total_cost.toFixed(4)}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">from master items</p>
+                </div>
+                <div className={`bg-white border rounded-xl p-4 shadow-sm ${editingRecipe ? 'border-amber-300 bg-amber-50' : 'border-gray-200'}`}>
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Selling Price</p>
+                  {editingRecipe ? (
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-gray-500">KWD</span>
+                      <input type="number" step="0.001" className="flex-1 text-lg font-semibold font-mono border border-amber-300 rounded px-2 py-0.5 bg-white focus:outline-none focus:ring-1 focus:ring-amber-400 w-24"
+                        value={editSellingPrice} onChange={e => setEditSellingPrice(e.target.value)}/>
+                    </div>
+                  ) : (
+                    <p className="text-lg font-semibold font-mono text-gray-900">{selectedCalc.selling_price > 0 ? 'KWD '+selectedCalc.selling_price.toFixed(4) : '—'}</p>
+                  )}
+                  <p className="text-xs text-gray-400 mt-0.5">{editingRecipe ? 'click to edit' : 'from price file'}</p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Gross Margin</p>
+                  <p className="text-lg font-semibold font-mono text-gray-900">
+                    {editingRecipe
+                      ? (parseFloat(editSellingPrice||'0') > 0 ? 'KWD '+(parseFloat(editSellingPrice||'0') - selectedCalc.total_cost).toFixed(4) : '—')
+                      : (selectedCalc.selling_price > 0 ? 'KWD '+selectedCalc.margin.toFixed(4) : '—')}
+                  </p>
+                </div>
+                <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Margin %</p>
+                  {(() => {
+                    const sp = editingRecipe ? parseFloat(editSellingPrice||'0') : selectedCalc.selling_price
+                    const mp = sp > 0 ? ((sp - selectedCalc.total_cost) / sp * 100) : 0
+                    return <p className={`text-lg font-semibold font-mono ${sp > 0 ? (mp >= 60 ? 'text-green-600' : mp >= 40 ? 'text-amber-600' : 'text-red-600') : 'text-gray-300'}`}>
+                      {sp > 0 ? mp.toFixed(1)+'%' : '—'}
+                    </p>
+                  })()}
+                </div>
               </div>
 
-              {/* Ingredients table */}
+              {/* Ingredients table — editable */}
               <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                  <p className="text-sm font-semibold text-gray-700">{selectedCalc.recipe_name}</p>
-                  <span className="text-xs text-gray-400">{selectedCalc.ingredients.length} ingredients · per {selectedCalc.recipe_qty} {selectedCalc.recipe_unit}</span>
+                  <div>
+                    <p className="text-sm font-semibold text-gray-700">{selectedCalc.recipe_name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">per {selectedCalc.recipe_qty} {selectedCalc.recipe_unit}</p>
+                  </div>
+                  {editingRecipe && (
+                    <button onClick={() => setAddingIngredient(true)}
+                      className="flex items-center gap-1.5 text-xs bg-blue-700 hover:bg-blue-800 text-white font-medium px-3 py-1.5 rounded-lg transition-colors">
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" strokeWidth={2.5} strokeLinecap="round" viewBox="0 0 12 12"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+                      Add Ingredient
+                    </button>
+                  )}
                 </div>
-                <table className="w-full text-xs">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      {['Code','Ingredient Name','Qty','Unit','Unit Price (KWD)','Line Cost (KWD)','% of Total'].map(h=>(
-                        <th key={h} className="text-left px-3 py-2.5 font-medium text-gray-500 border-b border-gray-100 whitespace-nowrap">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {selectedCalc.ingredients.sort((a,b)=>b.line_cost-a.line_cost).map((ing,i) => (
-                      <tr key={i} className={`border-b border-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
-                        <td className="px-3 py-2 font-mono text-gray-400">{ing.ingredient_code}</td>
-                        <td className="px-3 py-2 font-medium text-gray-700">{ing.ingredient_name}</td>
-                        <td className="px-3 py-2 font-mono">{ing.ingredient_qty}</td>
-                        <td className="px-3 py-2 text-gray-500">{ing.ingredient_unit}</td>
-                        <td className="px-3 py-2 font-mono">{ing.unit_price > 0 ? ing.unit_price.toFixed(5) : <span className="text-red-400">Not in master</span>}</td>
-                        <td className="px-3 py-2 font-mono font-medium text-gray-800">{ing.line_cost.toFixed(5)}</td>
-                        <td className="px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[80px]">
-                              <div className="h-1.5 rounded-full bg-blue-500" style={{width:`${Math.min((ing.line_cost/selectedCalc.total_cost)*100,100).toFixed(1)}%`}}/>
-                            </div>
-                            <span className="text-gray-500">{selectedCalc.total_cost > 0 ? ((ing.line_cost/selectedCalc.total_cost)*100).toFixed(1)+'%' : '—'}</span>
-                          </div>
-                        </td>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 sticky top-0">
+                      <tr>
+                        {['Code','Ingredient Name','Qty','Unit','Unit Price (KWD)','Line Cost (KWD)','% of Total', editingRecipe ? 'Action' : ''].filter(Boolean).map(h=>(
+                          <th key={h} className="text-left px-3 py-2.5 font-medium text-gray-500 border-b border-gray-100 whitespace-nowrap">{h}</th>
+                        ))}
                       </tr>
-                    ))}
-                    <tr className="bg-gray-800 text-white font-semibold">
-                      <td colSpan={5} className="px-3 py-2.5">TOTAL COST PER PORTION</td>
-                      <td className="px-3 py-2.5 font-mono">KWD {selectedCalc.total_cost.toFixed(4)}</td>
-                      <td className="px-3 py-2.5">100%</td>
-                    </tr>
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {/* Add new ingredient row */}
+                      {editingRecipe && addingIngredient && (
+                        <tr className="bg-blue-50 border-b border-blue-100">
+                          <td className="px-2 py-1.5"><input type="text" placeholder="Code" className="w-full text-xs border border-blue-300 rounded px-1.5 py-1 w-24"
+                            value={newIngredient.ingredient_code} onChange={e=>setNewIngredient(p=>({...p,ingredient_code:e.target.value}))}/></td>
+                          <td className="px-2 py-1.5"><input type="text" placeholder="Ingredient name" className="w-full text-xs border border-blue-300 rounded px-1.5 py-1 min-w-[180px]"
+                            value={newIngredient.ingredient_name} onChange={e=>setNewIngredient(p=>({...p,ingredient_name:e.target.value}))}/></td>
+                          <td className="px-2 py-1.5"><input type="number" placeholder="0" className="w-full text-xs border border-blue-300 rounded px-1.5 py-1 w-16"
+                            value={newIngredient.ingredient_qty} onChange={e=>setNewIngredient(p=>({...p,ingredient_qty:e.target.value}))}/></td>
+                          <td className="px-2 py-1.5"><input type="text" placeholder="Unit" className="w-full text-xs border border-blue-300 rounded px-1.5 py-1 w-16"
+                            value={newIngredient.ingredient_unit} onChange={e=>setNewIngredient(p=>({...p,ingredient_unit:e.target.value}))}/></td>
+                          <td colSpan={3} className="px-2 py-1.5 text-gray-400 text-xs italic">Will calculate from master items</td>
+                          <td className="px-2 py-1.5">
+                            <div className="flex gap-1">
+                              <button onClick={() => {
+                                if (!newIngredient.ingredient_name || !newIngredient.ingredient_qty) return
+                                setEditIngredients(prev => [...prev, {
+                                  recipe_code: selectedRecipe!,
+                                  ingredient_code: newIngredient.ingredient_code,
+                                  ingredient_name: newIngredient.ingredient_name,
+                                  ingredient_qty: parseFloat(newIngredient.ingredient_qty) || 0,
+                                  ingredient_unit: newIngredient.ingredient_unit,
+                                }])
+                                setNewIngredient({ ingredient_code:'', ingredient_name:'', ingredient_qty:'', ingredient_unit:'' })
+                                setAddingIngredient(false)
+                              }} className="bg-blue-700 text-white text-xs px-2 py-1 rounded">Add</button>
+                              <button onClick={() => setAddingIngredient(false)} className="border border-gray-200 text-gray-500 text-xs px-2 py-1 rounded">✕</button>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                      {(editingRecipe ? editIngredients : selectedCalc.ingredients.sort((a,b)=>b.line_cost-a.line_cost)).map((ing: any, i: number) => {
+                        const master = masterMap[String(ing.ingredient_code)]
+                        const unit_price = master?.correct_price || 0
+                        const line_cost = ing.ingredient_qty * unit_price
+                        const total = editingRecipe
+                          ? editIngredients.reduce((s,ii) => { const m = masterMap[String(ii.ingredient_code)]; return s + (ii.ingredient_qty * (m?.correct_price||0)) },0)
+                          : selectedCalc.total_cost
+                        return (
+                          <tr key={i} className={`border-b border-gray-50 ${i%2===0?'bg-white':'bg-gray-50/50'}`}>
+                            <td className="px-3 py-2 font-mono text-gray-400">{ing.ingredient_code}</td>
+                            <td className="px-3 py-2 font-medium text-gray-700">
+                              {editingRecipe ? (
+                                <input type="text" className="w-full text-xs border border-gray-200 rounded px-1.5 py-1 min-w-[160px]"
+                                  value={ing.ingredient_name}
+                                  onChange={e => setEditIngredients(prev => prev.map((ii,j) => j===i ? {...ii, ingredient_name: e.target.value} : ii))}/>
+                              ) : ing.ingredient_name}
+                            </td>
+                            <td className="px-3 py-2 font-mono">
+                              {editingRecipe ? (
+                                <input type="number" step="0.001" className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1"
+                                  value={ing.ingredient_qty}
+                                  onChange={e => setEditIngredients(prev => prev.map((ii,j) => j===i ? {...ii, ingredient_qty: parseFloat(e.target.value)||0} : ii))}/>
+                              ) : ing.ingredient_qty}
+                            </td>
+                            <td className="px-3 py-2 text-gray-500">
+                              {editingRecipe ? (
+                                <input type="text" className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1"
+                                  value={ing.ingredient_unit}
+                                  onChange={e => setEditIngredients(prev => prev.map((ii,j) => j===i ? {...ii, ingredient_unit: e.target.value} : ii))}/>
+                              ) : ing.ingredient_unit}
+                            </td>
+                            <td className="px-3 py-2 font-mono">{unit_price > 0 ? unit_price.toFixed(5) : <span className="text-red-400 text-xs">Not in master</span>}</td>
+                            <td className="px-3 py-2 font-mono font-medium text-gray-800">{line_cost.toFixed(5)}</td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 bg-gray-100 rounded-full h-1.5 max-w-[80px]">
+                                  <div className="h-1.5 rounded-full bg-blue-500" style={{width:`${total > 0 ? Math.min((line_cost/total)*100,100).toFixed(1) : 0}%`}}/>
+                                </div>
+                                <span className="text-gray-500">{total > 0 ? ((line_cost/total)*100).toFixed(1)+'%' : '—'}</span>
+                              </div>
+                            </td>
+                            {editingRecipe && (
+                              <td className="px-3 py-2">
+                                <button onClick={() => setEditIngredients(prev => prev.filter((_,j)=>j!==i))}
+                                  className="text-red-400 hover:text-red-600 text-xs border border-red-200 hover:border-red-300 px-2 py-1 rounded transition-colors">
+                                  Remove
+                                </button>
+                              </td>
+                            )}
+                          </tr>
+                        )
+                      })}
+                      {/* Totals row */}
+                      <tr className="bg-gray-800 text-white font-semibold">
+                        <td colSpan={editingRecipe ? 4 : 5} className="px-3 py-2.5">TOTAL COST PER PORTION</td>
+                        <td className="px-3 py-2.5 font-mono">
+                          KWD {editingRecipe
+                            ? editIngredients.reduce((s,ii) => { const m = masterMap[String(ii.ingredient_code)]; return s + (ii.ingredient_qty * (m?.correct_price||0)) },0).toFixed(4)
+                            : selectedCalc.total_cost.toFixed(4)}
+                        </td>
+                        <td className="px-3 py-2.5">100%</td>
+                        {editingRecipe && <td/>}
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </>
           )}
@@ -492,7 +663,6 @@ export default function RecipesClient() {
         </div>
       )}
 
-      {/* ── MONTHLY COST ── */}
       {tab === 'monthly' && (
         <div className="flex flex-col gap-4">
           <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm flex flex-wrap gap-3 items-end">
