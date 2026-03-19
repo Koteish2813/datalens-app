@@ -320,7 +320,7 @@ export default function ReportsClient({ role }: { role: string }) {
           </div>
 
           {/* AI Insights */}
-          {role === 'admin' && (
+          {(role === 'super_admin' || role === 'admin') && (
             <div className="bg-white border border-gray-200 rounded-xl p-5 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div>

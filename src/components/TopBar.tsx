@@ -4,9 +4,10 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
 const roleBadge: Record<string, { label: string; color: string }> = {
-  admin:     { label: 'Admin',     color: 'bg-blue-100 text-blue-700' },
-  sub_admin: { label: 'Sub-Admin', color: 'bg-purple-100 text-purple-700' },
-  viewer:    { label: 'Viewer',    color: 'bg-gray-100 text-gray-600' },
+  super_admin: { label: 'Super Admin', color: 'bg-blue-100 text-blue-700' },
+  admin:       { label: 'Admin',       color: 'bg-purple-100 text-purple-700' },
+  sub_admin:   { label: 'Sub-Admin',   color: 'bg-amber-100 text-amber-700' },
+  viewer:      { label: 'Viewer',      color: 'bg-gray-100 text-gray-600' },
 }
 
 export default function TopBar({ userName, userRole, userId }: { userName: string; userRole: string; userId?: string }) {
@@ -19,11 +20,7 @@ export default function TopBar({ userName, userRole, userId }: { userName: strin
     async function fetchRole() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('role, full_name')
-        .eq('id', user.id)
-        .single()
+      const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
       if (profile?.role) setRole(profile.role)
       if (profile?.full_name) setName(profile.full_name)
     }
@@ -50,9 +47,7 @@ export default function TopBar({ userName, userRole, userId }: { userName: strin
       </div>
       <div className="flex items-center gap-3">
         <span className="text-sm text-gray-500 hidden sm:block">{name || userName}</span>
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${badge.color}`}>
-          {badge.label}
-        </span>
+        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
         <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
           Sign out
         </button>

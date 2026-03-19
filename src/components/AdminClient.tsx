@@ -3,14 +3,15 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
 type Profile = { id: string; full_name: string; email: string; role: string; created_at: string }
-type Role = 'admin' | 'sub_admin' | 'viewer'
+type Role = 'super_admin' | 'admin' | 'sub_admin' | 'viewer'
 
-const ROLES: Role[] = ['admin', 'sub_admin', 'viewer']
-const ROLE_LABELS: Record<Role, string> = { admin: 'Admin', sub_admin: 'Sub-Admin', viewer: 'Viewer' }
+const ROLES: Role[] = ['super_admin', 'admin', 'sub_admin', 'viewer']
+const ROLE_LABELS: Record<Role, string> = { super_admin: 'Super Admin', admin: 'Admin', sub_admin: 'Sub-Admin', viewer: 'Viewer' }
 const ROLE_COLORS: Record<Role, string> = {
-  admin:     'bg-blue-100 text-blue-700 border-blue-200',
-  sub_admin: 'bg-purple-100 text-purple-700 border-purple-200',
-  viewer:    'bg-gray-100 text-gray-600 border-gray-200',
+  super_admin: 'bg-blue-100 text-blue-700 border-blue-200',
+  admin:       'bg-purple-100 text-purple-700 border-purple-200',
+  sub_admin:   'bg-amber-100 text-amber-700 border-amber-200',
+  viewer:      'bg-gray-100 text-gray-600 border-gray-200',
 }
 
 export default function AdminClient({ initialProfiles }: { initialProfiles: Profile[] }) {
@@ -78,9 +79,10 @@ export default function AdminClient({ initialProfiles }: { initialProfiles: Prof
       {/* Role legend */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {([
-          { role:'admin',     title:'Admin',     desc:'Full access — upload files, AI insights, manage users' },
-          { role:'sub_admin', title:'Sub-Admin',  desc:'View charts, stats, trends and data table' },
-          { role:'viewer',    title:'Viewer',     desc:'Read-only access to charts, stats and data table' },
+          { role:'super_admin', title:'Super Admin', desc:'Full access — upload, AI insights, manage users' },
+          { role:'admin',       title:'Admin',       desc:'Upload files, AI insights, view all reports' },
+          { role:'sub_admin',   title:'Sub-Admin',   desc:'View charts, stats, trends and data table' },
+          { role:'viewer',      title:'Viewer',      desc:'Read-only access to reports and data table' },
         ] as const).map(r => (
           <div key={r.role} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${ROLE_COLORS[r.role]}`}>{r.title}</span>
