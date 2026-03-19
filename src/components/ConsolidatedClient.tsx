@@ -55,17 +55,26 @@ export default function ConsolidatedClient() {
       const rests = Object.keys(data).filter(k => k !== 'meta')
 
       // Helper: build section rows
-      function buildSection(rows: any[], labelKey: string, sectionLabel: string) {
-        const header = [sectionLabel, 'Label', ...days, 'Sum', 'Average']
+      function buildSection(rows: any[], labelKey: string, sectionLabel: string, isInv = false) {
+        const header = isInv
+          ? [sectionLabel, 'Code', 'Item Name', 'Unit', ...days, 'Sum', 'Average']
+          : [sectionLabel, 'Label', ...days, 'Sum', 'Average']
         const result = [header]
         rows.forEach((row: any) => {
           const label = row[labelKey] || row.hour || ''
-          const displayLabel = label.includes('||') ? label.split('||')[1] : label
+          const parts = label.split('||')
+          const code = parts[0] || ''
+          const displayLabel = parts[1] || label
+          const unit = parts[2] || ''
           const vals = days.map((d: number) => row.days[d] || 0)
           const sum = vals.reduce((a: number, b: number) => a + b, 0)
           const nonZero = vals.filter((v: number) => v > 0).length
           const avg = nonZero > 0 ? sum / nonZero : 0
-          result.push(['', displayLabel, ...vals, sum, parseFloat(avg.toFixed(3))])
+          if (isInv) {
+            result.push(['', code, displayLabel, unit, ...vals, sum, parseFloat(avg.toFixed(3))])
+          } else {
+            result.push(['', displayLabel, ...vals, sum, parseFloat(avg.toFixed(3))])
+          }
         })
         return result
       }
@@ -84,21 +93,21 @@ export default function ConsolidatedClient() {
         rows.push(['', '', ...days, 'Sum', 'Avg'])
 
         const sections = [
-          ['hourly_txn', 'Hourly Transactions', 'hour'],
-          ['hourly_amt', 'Hourly Sales (KWD)', 'hour'],
-          ['deliv_txn',  'Delivery Transactions', 'hour'],
-          ['deliv_amt',  'Delivery Sales (KWD)', 'hour'],
-          ['pmix_qty',   'Product Mix Qty', 'key'],
-          ['pmix_amt',   'Product Mix Amount (KWD)', 'key'],
-          ['meal_cnt',   'Meal Count', 'key'],
-          ['cons_qty',   'Consumption Qty', 'key'],
-          ['waste_qty',  'Wastage Qty', 'key'],
-          ['var_qty',    'Variance Qty', 'key'],
+          ['hourly_txn', 'Hourly Transactions', 'hour', false],
+          ['hourly_amt', 'Hourly Sales (KWD)', 'hour', false],
+          ['deliv_txn',  'Delivery Transactions', 'hour', false],
+          ['deliv_amt',  'Delivery Sales (KWD)', 'hour', false],
+          ['pmix_qty',   'Product Mix Qty', 'key', false],
+          ['pmix_amt',   'Product Mix Amount (KWD)', 'key', false],
+          ['meal_cnt',   'Meal Count', 'key', false],
+          ['cons_qty',   'Consumption Qty', 'key', true],
+          ['waste_qty',  'Wastage Qty', 'key', true],
+          ['var_qty',    'Variance Qty', 'key', true],
         ]
 
-        for (const [sKey, sLabel, lKey] of sections) {
+        for (const [sKey, sLabel, lKey, isInv] of sections) {
           rows.push([])
-          const sectionRows = buildSection(rd[sKey] || [], lKey, sLabel)
+          const sectionRows = buildSection(rd[sKey] || [], lKey as string, sLabel as string, isInv as boolean)
           rows.push(...sectionRows)
           // Totals row
           if (rd[sKey]?.length > 0) {
@@ -107,13 +116,17 @@ export default function ConsolidatedClient() {
             )
             const grandSum = totals.reduce((a: number, b: number) => a + b, 0)
             const nonZero = totals.filter((v: number) => v > 0).length
-            rows.push(['', 'TOTAL', ...totals, grandSum, parseFloat((nonZero > 0 ? grandSum / nonZero : 0).toFixed(3))])
+            if (isInv) {
+              rows.push(['', '', 'TOTAL', '', ...totals, grandSum, parseFloat((nonZero > 0 ? grandSum / nonZero : 0).toFixed(3))])
+            } else {
+              rows.push(['', 'TOTAL', ...totals, grandSum, parseFloat((nonZero > 0 ? grandSum / nonZero : 0).toFixed(3))])
+            }
           }
         }
 
         const ws = XLSX.utils.aoa_to_sheet(rows)
         // Style column widths
-        ws['!cols'] = [{ wch: 5 }, { wch: 35 }, ...days.map(() => ({ wch: 8 })), { wch: 10 }, { wch: 10 }]
+        ws['!cols'] = [{ wch: 5 }, { wch: 14 }, { wch: 35 }, { wch: 10 }, ...days.map(() => ({ wch: 8 })), { wch: 10 }, { wch: 10 }]
         XLSX.utils.book_append_sheet(wb, ws, shortName.slice(0, 31))
       }
 
@@ -170,16 +183,19 @@ export default function ConsolidatedClient() {
     if (!section.length) return <p className="text-sm text-gray-400 text-center py-8">No data for this section</p>
     const days = data.meta.days as number[]
     const isHour = activeSection.startsWith('hourly') || activeSection.startsWith('deliv')
+    const isInv = ['cons_qty','waste_qty','var_qty'].includes(activeSection)
     const labelKey = isHour ? 'hour' : 'key'
 
     return (
       <div className="overflow-x-auto">
-        <table className="text-xs w-full border-collapse" style={{minWidth: 800}}>
+        <table className="text-xs w-full border-collapse" style={{minWidth: isInv ? 1000 : 800}}>
           <thead>
             <tr className="bg-gray-50">
+              {isInv && <th className="text-left px-3 py-2 border border-gray-200 sticky left-0 bg-gray-50 min-w-[90px]">Code</th>}
               <th className="text-left px-3 py-2 border border-gray-200 sticky left-0 bg-gray-50 min-w-[200px]">
                 {isHour ? 'Hour' : 'Item'}
               </th>
+              {isInv && <th className="text-left px-2 py-2 border border-gray-200 bg-gray-50 min-w-[60px]">Unit</th>}
               {days.map(d => {
                 const date = new Date(data.meta.year, data.meta.month - 1, d)
                 const dayName = ['Su','Mo','Tu','We','Th','Fr','Sa'][date.getDay()]
@@ -197,7 +213,10 @@ export default function ConsolidatedClient() {
           <tbody>
             {section.map((row: any, i: number) => {
               const label = row[labelKey] || ''
-              const displayLabel = label.includes('||') ? label.split('||')[1] : label
+              const parts = label.split('||')
+              const displayCode = parts[0] || ''
+              const displayLabel = parts[1] || label
+              const displayUnit = parts[2] || ''
               const vals = days.map((d: number) => row.days[d] || 0)
               const sum = vals.reduce((a: number, b: number) => a + b, 0)
               const nonZero = vals.filter((v: number) => v > 0).length
@@ -206,7 +225,9 @@ export default function ConsolidatedClient() {
               const fmt = (v: number) => isAmt ? v.toFixed(3) : v || ''
               return (
                 <tr key={i} className={i % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                  {isInv && <td className="px-2 py-1.5 border border-gray-200 sticky left-0 bg-inherit font-mono text-gray-500 text-xs">{displayCode}</td>}
                   <td className="px-3 py-1.5 border border-gray-200 sticky left-0 bg-inherit font-medium text-gray-700 truncate max-w-[200px]">{displayLabel}</td>
+                  {isInv && <td className="px-2 py-1.5 border border-gray-200 text-gray-400 text-xs">{displayUnit}</td>}
                   {vals.map((v: number, j: number) => (
                     <td key={j} className={`px-2 py-1.5 border border-gray-200 text-center ${v > 0 ? 'text-gray-800' : 'text-gray-300'}`}>
                       {fmt(v)}
@@ -219,7 +240,9 @@ export default function ConsolidatedClient() {
             })}
             {/* Totals row */}
             <tr className="bg-gray-800 text-white font-semibold">
+              {isInv && <td className="px-2 py-2 bg-gray-800"></td>}
               <td className="px-3 py-2 sticky left-0 bg-gray-800">TOTAL</td>
+              {isInv && <td className="px-2 py-2 bg-gray-800"></td>}
               {days.map((d: number) => {
                 const total = section.reduce((sum: number, row: any) => sum + (row.days[d] || 0), 0)
                 const isAmt = activeSection.includes('amt')

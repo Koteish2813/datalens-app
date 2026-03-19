@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     fetchData('delivery_sales', 'restaurant_name,date,hour,number_of_bills,net_sales'),
     fetchData('meal_count', 'restaurant_name,date,item_code,item_name,super_category,category,meal_count,total_quantity,total_price'),
     fetchData('menu_mix', 'restaurant_name,date,item_number,item_name,scategory,number_sold,net_sales'),
-    fetchData('inventory', 'restaurant_name,date,item_code,item_name,category,consumption,wastage,variance,actual_consumption'),
+    fetchData('inventory', 'restaurant_name,date,item_code,item_name,unit,category,consumption,wastage,variance,actual_consumption'),
   ])
 
   // Helper: get day number from date string
@@ -91,14 +91,14 @@ export async function GET(request: NextRequest) {
     const mealCnt = pivotByDay(rMeal, r => `${r.item_code}||${r.item_name}`, r => r.meal_count || 0)
 
     // Consumption / wastage / variance
-    const consQty = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}`, r => r.consumption || 0)
+    const consQty = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}||${r.unit||''}`, r => r.consumption || 0)
     const consAmt = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}`, r => 0) // no amount in current schema
-    const wasteQty = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}`, r => r.wastage || 0)
-    const varQty  = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}`, r => r.variance || 0)
+    const wasteQty = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}||${r.unit||''}`, r => r.wastage || 0)
+    const varQty  = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}||${r.unit||''}`, r => r.variance || 0)
 
     // Get unique items
     const mealItems = [...new Set(rMeal.map((r: any) => `${r.item_code}||${r.item_name}`))]
-    const invItems  = [...new Set(rInv.map((r: any) => `${r.item_code}||${r.item_name}`))]
+    const invItems  = [...new Set(rInv.map((r: any) => `${r.item_code}||${r.item_name}||${r.unit||''}`))]
 
     sections[rest] = {
       hourly_txn: HOURS.map(h => ({ hour: h, days: Object.fromEntries(days.map(d => [d, hourlyTxn[h]?.[d] || 0])) })),
