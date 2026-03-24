@@ -313,38 +313,45 @@ export default function RecipesClient() {
   function updateSimItem(code: string, field: string, val: string) {
     setSimItems(prev => prev.map(s => {
       if (s.item_code !== code) return s
-      const updated: any = { ...s, [field]: val }
+      const updated: any = { ...s }
 
       if (field === 'new_price_cs') {
-        // Changed case price → recalc unit price
-        const newCs = parseFloat(val) || 0
-        const qty = s.qty_per_cs || 1
-        updated.new_price = qty > 0 ? newCs / qty : 0
-        updated.change_value = String(updated.new_price)
+        updated.new_price_cs = val === '' ? '' : parseFloat(val)
+        const newCs = parseFloat(val)
+        const qty = parseFloat(String(s.qty_per_cs)) || 1
+        if (!isNaN(newCs) && qty > 0) {
+          updated.new_price = newCs / qty
+          updated.change_value = String(updated.new_price)
+        }
         updated.change_type = 'amount'
       } else if (field === 'qty_per_cs') {
-        // Changed qty per cs → recalc unit price from case price
+        updated.qty_per_cs = val === '' ? '' : parseFloat(val)
         const qty = parseFloat(val) || 1
-        const cs = s.new_price_cs || s.old_price_cs || 0
-        updated.new_price = qty > 0 ? cs / qty : 0
-        updated.change_value = String(updated.new_price)
+        const cs = parseFloat(String(s.new_price_cs)) || parseFloat(String(s.old_price_cs)) || 0
+        if (qty > 0 && cs > 0) {
+          updated.new_price = cs / qty
+          updated.change_value = String(updated.new_price)
+        }
         updated.change_type = 'amount'
       } else if (field === 'new_price') {
-        // Changed unit price directly → recalc case price
-        const newUnit = parseFloat(val) || 0
+        updated.new_price = val === '' ? '' : parseFloat(val)
+        const newUnit = parseFloat(val)
         const qty = parseFloat(String(s.qty_per_cs)) || 1
-        updated.new_price_cs = newUnit * qty
-        updated.change_value = val
+        if (!isNaN(newUnit)) {
+          updated.new_price_cs = newUnit * qty
+          updated.change_value = val
+        }
         updated.change_type = 'amount'
       } else if (field === 'change_value' || field === 'change_type') {
+        updated[field] = val
         const cv = parseFloat(field === 'change_value' ? val : s.change_value) || 0
         const ct = field === 'change_type' ? val : s.change_type
-        updated.new_price = ct === 'percent'
-          ? s.old_price * (1 + cv / 100)
-          : cv
-        // Also update case price
-        const qty = parseFloat(String(s.qty_per_cs)) || 1
-        updated.new_price_cs = updated.new_price * qty
+        const np = ct === 'percent' ? s.old_price * (1 + cv / 100) : cv
+        if (!isNaN(np)) {
+          updated.new_price = np
+          const qty = parseFloat(String(s.qty_per_cs)) || 1
+          updated.new_price_cs = np * qty
+        }
       }
       return updated
     }))
@@ -1078,28 +1085,28 @@ export default function RecipesClient() {
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1">
                           <span className="text-gray-400 text-xs">KWD</span>
-                          <input type="number" step="0.00001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${s.new_price !== s.old_price ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
-                            value={s.new_price.toFixed(5)} onChange={e=>updateSimItem(s.item_code,'new_price',e.target.value)}/>
+                          <input type="number" step="0.00001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${(s.new_price||0) !== (s.old_price||0) ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
+                            value={isNaN(s.new_price) ? '' : s.new_price} onChange={e=>updateSimItem(s.item_code,'new_price',e.target.value)}/>
                         </div>
                       </td>
                       {/* Old CS price — read only */}
-                      <td className="px-3 py-2 font-mono text-gray-400">{s.old_price_cs.toFixed(3)}</td>
+                      <td className="px-3 py-2 font-mono text-gray-400">{isNaN(s.old_price_cs) || !s.old_price_cs ? '—' : Number(s.old_price_cs).toFixed(3)}</td>
                       {/* New CS price — editable, auto-calculates unit price */}
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-1">
                           <span className="text-gray-400 text-xs">KWD</span>
-                          <input type="number" step="0.001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${s.new_price_cs !== s.old_price_cs ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
-                            value={s.new_price_cs.toFixed(3)} onChange={e=>updateSimItem(s.item_code,'new_price_cs',e.target.value)}/>
+                          <input type="number" step="0.001" className={`w-24 text-xs border rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500 ${(s.new_price_cs||0) !== (s.old_price_cs||0) ? 'border-purple-300 bg-purple-50 font-semibold' : 'border-gray-200'}`}
+                            value={isNaN(s.new_price_cs) ? '' : s.new_price_cs} onChange={e=>updateSimItem(s.item_code,'new_price_cs',e.target.value)}/>
                         </div>
                       </td>
                       {/* Qty per CS — editable */}
                       <td className="px-3 py-2">
                         <input type="number" step="1" className="w-16 text-xs border border-gray-200 rounded px-1.5 py-1 focus:outline-none focus:ring-1 focus:ring-purple-500"
-                          value={s.qty_per_cs} onChange={e=>updateSimItem(s.item_code,'qty_per_cs',e.target.value)}/>
+                          value={isNaN(s.qty_per_cs) ? '' : s.qty_per_cs} onChange={e=>updateSimItem(s.item_code,'qty_per_cs',e.target.value)}/>
                       </td>
                       {/* % change — read only calculated */}
-                      <td className={`px-3 py-2 font-mono font-medium text-xs ${s.new_price > s.old_price ? 'text-red-500' : s.new_price < s.old_price ? 'text-green-600' : 'text-gray-400'}`}>
-                        {s.old_price > 0 ? (s.new_price > s.old_price ? '+' : '')+((s.new_price-s.old_price)/s.old_price*100).toFixed(2)+'%' : '—'}
+                      <td className={`px-3 py-2 font-mono font-medium text-xs ${(s.new_price||0) > (s.old_price||0) ? 'text-red-500' : (s.new_price||0) < (s.old_price||0) ? 'text-green-600' : 'text-gray-400'}`}>
+                        {s.old_price > 0 && !isNaN(s.new_price) ? (s.new_price > s.old_price ? '+' : '')+((s.new_price-s.old_price)/s.old_price*100).toFixed(2)+'%' : '—'}
                       </td>
                       <td className="px-3 py-2">
                         <button onClick={()=>setSimItems(prev=>prev.filter(x=>x.item_code!==s.item_code))}
