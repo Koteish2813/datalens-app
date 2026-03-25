@@ -10,6 +10,7 @@ const navItems = [
   { href:'/compare',      label:'Compare',        roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 8h6M9 8h6M4 4v8M12 4v8' },
   { href:'/consolidated', label:'Consolidated',   roles:['super_admin','admin','sub_admin'],          icon:'M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { href:'/upload',       label:'Upload Data',    roles:['super_admin','admin'],                      icon:'M14 2H6a2 2 0 0 0-2 2v6M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3' },
+  { href:'/bulk',         label:'Bulk Import',    roles:['super_admin','admin'],                      icon:'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
   { href:'/master',       label:'Master Menu',    roles:['super_admin','admin','sub_admin'],          icon:'M1 2h14v2H1zM1 6h14v2H1zM1 10h14v2H1zM1 14h14v2H1z' },
   { href:'/recipes',      label:'Recipes & Cost', roles:['super_admin','admin','sub_admin'],          icon:'M8 2a6 6 0 100 12A6 6 0 008 2zM5 8h6M8 5v6' },
   { href:'/simulation',   label:'Price Simulation',roles:['super_admin','admin','sub_admin'],          icon:'M13 10V3L4 14h7v7l9-11h-7z' },
