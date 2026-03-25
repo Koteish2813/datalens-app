@@ -53,7 +53,7 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
         no_of_tickets: Number(r[1]) || 0,
         covers: Number(r[2]) || 0,
         charges: Number(r[3]) || 0,
-        sub_total: Number(r[4]) || 0,
+        subtotal: Number(r[4]) || 0,
         discount: Number(r[5]) || 0,
         net_sales: Number(r[6]) || 0,
         gross_sales: Number(r[7]) || 0,
@@ -74,11 +74,11 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
       rows.push({
         restaurant_name: restaurant, date,
         hour: String(r[1]).trim(),
-        tab: String(r[2]).trim(),
+        platform: String(r[2]).trim(),
         number_of_bills: Number(r[3]) || 0,
         covers: Number(r[4]) || 0,
         charges: Number(r[5]) || 0,
-        sub_total: Number(r[6]) || 0,
+        subtotal: Number(r[6]) || 0,
         discount: Number(r[7]) || 0,
         net_sales: Number(r[8]) || 0,
         gross_sales: Number(r[9]) || 0,
@@ -104,7 +104,7 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
         item_name: String(r[3]).trim(),
         item_rate: Number(r[4]) || 0,
         item_quantity: Number(r[5]) || 0,
-        combo_qty: Number(r[6]) || 0,
+        combo_constituent_qty: Number(r[6]) || 0,
         total_quantity: Number(r[7]) || 0,
         portion_value: Number(r[8]) || 0,
         meal_count: Number(r[9]) || 0,
@@ -133,7 +133,7 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
         non_comp_qty: Number(r[4]) || 0,
         number_sold: Number(r[5]) || 0,
         price_sold: Number(r[6]) || 0,
-        net_sales: Number(r[7]) || 0,
+        amount: Number(r[7]) || 0,
         comp_amount: Number(r[8]) || 0,
         discount_amount: Number(r[9]) || 0,
       })
@@ -260,6 +260,12 @@ export default function BulkImportClient() {
         } else {
           const table = TABLE_MAP[sheet.type]
           const rowsWithUser = rows.map(r => ({ ...r, uploaded_by: user?.id }))
+
+          // First delete existing data for this date/restaurant/type to avoid duplicates
+          await supabase.from(table)
+            .delete()
+            .eq('restaurant_name', sheet.restaurant)
+            .eq('date', sheet.date)
 
           // Batch insert
           for (let b = 0; b < rowsWithUser.length; b += 500) {
@@ -423,7 +429,7 @@ export default function BulkImportClient() {
                     <td className="px-3 py-2 font-mono text-gray-600">{r.rows || (r.status==='done'?r.rows:'—')}</td>
                     <td className="px-3 py-2">
                       {r.status === 'done'    && <span className="text-green-600 font-medium">✓ Done</span>}
-                      {r.status === 'error'   && <span className="text-red-500" title={r.error}>✕ Error</span>}
+                      {r.status === 'error'   && <span className="text-red-500 cursor-help" title={r.error}>✕ {r.error?.slice(0,40)||'Error'}</span>}
                       {r.status === 'skipped' && <span className="text-gray-400">— Empty</span>}
                       {r.status === 'uploading' && <span className="text-blue-500">Uploading…</span>}
                       {r.status === 'pending' && <span className="text-gray-300">Pending</span>}
