@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase'
 const navItems = [
   { href:'/dashboard',    label:'Dashboard',      roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z' },
   { href:'/reports',      label:'Reports',        roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 12l4-5 3 2 4-5 3 2M1 15h14' },
+  { href:'/compare',      label:'Compare',        roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 8h6M9 8h6M4 4v8M12 4v8' },
   { href:'/consolidated', label:'Consolidated',   roles:['super_admin','admin','sub_admin'],          icon:'M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
   { href:'/upload',       label:'Upload Data',    roles:['super_admin','admin'],                      icon:'M14 2H6a2 2 0 0 0-2 2v6M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3' },
   { href:'/master',       label:'Master Menu',    roles:['super_admin','admin','sub_admin'],          icon:'M1 2h14v2H1zM1 6h14v2H1zM1 10h14v2H1zM1 14h14v2H1z' },
