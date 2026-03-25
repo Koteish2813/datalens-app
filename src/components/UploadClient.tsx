@@ -181,7 +181,7 @@ export default function UploadPage() {
         <div className="flex flex-col gap-2">
           <h2 className="text-sm font-semibold text-gray-700">Upload Results</h2>
           {files.map((f, i) => (
-            <div key={i} className={`border rounded-xl px-4 py-3 flex flex-col gap-3 ${statusColor(f.status)}`}>
+            <div key={i} className={`border rounded-xl px-3 py-3 flex flex-col gap-3 ${statusColor(f.status)}`}>
               <div className="flex items-start gap-3">
                 <div className="mt-0.5 shrink-0">{statusIcon(f.status)}</div>
                 <div className="flex-1 min-w-0">
