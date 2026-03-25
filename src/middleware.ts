@@ -33,5 +33,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/reports/:path*', '/upload/:path*', '/admin/:path*', '/manage/:path*', '/settings/:path*', '/consolidated/:path*', '/master/:path*', '/recipes/:path*', '/compare/:path*', '/login'],
+  matcher: ['/dashboard/:path*', '/reports/:path*', '/upload/:path*', '/admin/:path*', '/manage/:path*', '/settings/:path*', '/consolidated/:path*', '/master/:path*', '/recipes/:path*', '/compare/:path*', '/simulation/:path*', '/login'],
 }
