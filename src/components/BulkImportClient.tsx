@@ -141,28 +141,34 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
   }
 
   else if (type === 'inventory') {
+    // Structure: Row 1 = 'INNER TABLE', Row 2 = headers, Row 3+ = data
+    // Find header row (contains 'Item Code')
     let headerRow = -1
-    for (let i = 0; i < data.length; i++) {
+    for (let i = 0; i < Math.min(data.length, 5); i++) {
       if (String(data[i][0]) === 'Item Code') { headerRow = i; break }
     }
     if (headerRow === -1) return rows
     for (let i = headerRow + 1; i < data.length; i++) {
       const r = data[i]
-      if (!r[0] || isNaN(Number(r[0])) || String(r[0]).includes('Amount')) continue
+      // Skip non-data rows: empty, 'Amount -' totals, non-numeric codes
+      if (!r[0]) continue
+      const code = String(r[0]).trim()
+      if (code.startsWith('Amount') || code === '' || isNaN(Number(code))) continue
       rows.push({
-        restaurant_name: restaurant, date,
-        item_code: String(r[0]).trim(),
-        item_name: String(r[1]).trim(),
-        unit: String(r[2]).trim(),
-        category: String(r[3]).trim(),
+        restaurant_name: restaurant,
+        date,  // Use the sheet date (day of month), NOT latest_physical
+        item_code: code,
+        item_name: String(r[1] || '').trim(),
+        unit: String(r[2] || '').trim(),
+        category: String(r[3] || '').trim(),
         average_price: Number(r[4]) || 0,
         opening: Number(r[5]) || 0,
         purchase: Number(r[7]) || 0,
         consumption: Number(r[11]) || 0,
         wastage: Number(r[15]) || 0,
         closing: Number(r[21]) || 0,
-        variance: Number(r[26]) || null,
-        variance_pct: Number(r[28]) || null,
+        variance: r[26] != null && r[26] !== '-' ? Number(r[26]) : null,
+        variance_pct: r[28] != null && r[28] !== '-' ? Number(r[28]) : null,
         actual_consumption: Number(r[31]) || 0,
       })
     }
