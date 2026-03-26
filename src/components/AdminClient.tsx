@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 
 type Profile = { id: string; full_name: string; email: string; role: string; created_at: string }
@@ -24,6 +24,16 @@ export default function AdminClient() {
   const [inviting, setInviting] = useState(false)
   const [inviteMsg, setInviteMsg] = useState<{type:'success'|'error', text:string}|null>(null)
   const [updating, setUpdating] = useState<string|null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => { loadProfiles() }, [])
+
+  async function loadProfiles() {
+    setLoading(true)
+    const { data } = await supabase.from('profiles').select('*').order('created_at')
+    setProfiles(data ?? [])
+    setLoading(false)
+  }
 
   async function inviteUser(e: React.FormEvent) {
     e.preventDefault()

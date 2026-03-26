@@ -1,3 +1,5 @@
+import type { CSSProperties } from 'react'
+
 // DataLens Design System — shared tokens and helpers
 
 export const C = {
@@ -37,12 +39,12 @@ export const inputStyle = {
   padding: '8px 12px',
   fontSize: 13,
   outline: 'none',
-} as React.CSSProperties
+} as CSSProperties
 
 export const selectStyle = {
   ...inputStyle,
   cursor: 'pointer',
-} as React.CSSProperties
+} as CSSProperties
 
 export const btnPrimary = {
   background: C.accent,
@@ -56,7 +58,7 @@ export const btnPrimary = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
-} as React.CSSProperties
+} as CSSProperties
 
 export const btnGhost = {
   background: 'transparent',
@@ -70,7 +72,7 @@ export const btnGhost = {
   display: 'flex',
   alignItems: 'center',
   gap: 6,
-} as React.CSSProperties
+} as CSSProperties
 
 export const btnDanger = {
   background: 'transparent',
@@ -81,7 +83,7 @@ export const btnDanger = {
   fontSize: 11,
   fontWeight: 600,
   cursor: 'pointer',
-} as React.CSSProperties
+} as CSSProperties
 
 export const label = {
   display: 'block',
@@ -90,14 +92,14 @@ export const label = {
   color: C.dim,
   letterSpacing: '0.08em',
   marginBottom: 6,
-} as React.CSSProperties
+} as CSSProperties
 
 export const sectionTitle = {
   fontSize: 9,
   fontWeight: 800,
   color: C.dim,
   letterSpacing: '0.12em',
-} as React.CSSProperties
+} as CSSProperties
 
 export const tableHeader = {
   padding: '8px 14px',
