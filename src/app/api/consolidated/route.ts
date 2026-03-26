@@ -90,9 +90,9 @@ export async function GET(request: NextRequest) {
     const varQty   = pivotByDay(rInv, r => `${r.item_code}||${r.item_name}||${r.unit||''}`, r => r.variance    || 0)
 
     // Unique item keys
-    const menuItems = [...new Set(rMenu.map((r: any) => `${r.item_number}||${r.item_name}`))]
-    const mealItems = [...new Set(rMeal.map((r: any) => `${r.item_code}||${r.item_name}`))]
-    const invItems  = [...new Set(rInv.map((r: any)  => `${r.item_code}||${r.item_name}||${r.unit||''}`))]
+    const menuItems: string[] = Array.from(new Set(rMenu.map((r: any) => `${r.item_number}||${r.item_name}`)))
+    const mealItems: string[] = Array.from(new Set(rMeal.map((r: any) => `${r.item_code}||${r.item_name}`)))
+    const invItems: string[] = (Array.from(new Set(rInv.map((r: any) => `${r.item_code}||${r.item_name}||${r.unit||''}`))) as string[])
 
     sections[rest] = {
       // Hourly Sales

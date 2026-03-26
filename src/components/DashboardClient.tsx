@@ -71,13 +71,13 @@ export default function DashboardClient() {
     const {data: mtdSalesD} = await applyRest(supabase.from('hourly_sales').select('net_sales,no_of_tickets').gte('date',mtdFrom).lte('date',today))
     const mtdSales = mtdSalesD?.reduce((s:number,r:any)=>s+(r.net_sales||0),0)??0
     const mtdTxn = mtdSalesD?.reduce((s:number,r:any)=>s+(r.no_of_tickets||0),0)??0
-    const mtdDays = [...new Set(mtdSalesD?.map((r:any)=>r.date)??[])].length
+    const mtdDays = Array.from(new Set(mtdSalesD?.map((r:any)=>r.date)??[])).length
 
     // YTD
     const {data: ytdSalesD} = await applyRest(supabase.from('hourly_sales').select('net_sales,no_of_tickets').gte('date',ytdFrom).lte('date',today))
     const ytdSales = ytdSalesD?.reduce((s:number,r:any)=>s+(r.net_sales||0),0)??0
     const ytdTxn = ytdSalesD?.reduce((s:number,r:any)=>s+(r.no_of_tickets||0),0)??0
-    const ytdDays = [...new Set(ytdSalesD?.map((r:any)=>r.date)??[])].length
+    const ytdDays = Array.from(new Set(ytdSalesD?.map((r:any)=>r.date)??[])).length
 
     setSales({last:lastSales, mtd:mtdSales, ytd:ytdSales, lastDate:latestDate, lastWeekPct:0})
     setTxn({last:lastTxn, mtd:mtdTxn, ytd:ytdTxn, lastDate:latestDate})

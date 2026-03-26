@@ -1,6 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
-import { C, TYPE_LABEL, TYPE_COLORS } from '@/lib/ds'
+import { C, TYPE_LABELS, TYPE_COLORS } from '@/lib/ds'
 import { createClient } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 
@@ -384,7 +384,7 @@ export default function BulkImportClient() {
                     <td className="px-3 py-2 text-gray-600 max-w-[160px] truncate">{r.restaurant.split(' - ')[2]||r.restaurant}</td>
                     <td className="px-3 py-2">
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${TYPE_COLOR[r.type]||'bg-gray-100 text-gray-600'}`}>
-                        {TYPE_LABEL[r.type]||r.type}
+                        {TYPE_LABELS[r.type]||r.type}
                       </span>
                     </td>
                     <td className="px-3 py-2 font-mono text-gray-500">{r.date}</td>

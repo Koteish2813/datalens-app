@@ -56,7 +56,7 @@ export default function ConsolidatedClient() {
       const rests = Object.keys(data).filter(k => k !== 'meta')
 
       // Helper: build section rows
-      function buildSection(rows: any[], labelKey: string, sectionLabel: string, isInv = false) {
+      const buildSection = (rows: any[], labelKey: string, sectionLabel: string, isInv = false) => {
         const header = isInv
           ? [sectionLabel, 'Code', 'Item Name', 'Unit', ...days, 'Sum', 'Average']
           : [sectionLabel, 'Label', ...days, 'Sum', 'Average']
@@ -178,7 +178,7 @@ export default function ConsolidatedClient() {
   }
 
   // Merge all restaurant data into one for total tab
-  function getTotalData(data: any, rests: string[]) {
+  const getTotalData = (data: any, rests: string[]) => {
     if (!rests.length) return null
     const result: any = {}
     const sectionKeys = ['hourly_txn','hourly_amt','deliv_txn','deliv_amt','pmix_qty','pmix_amt','meal_cnt','meal_qty','meal_amt','cons_qty','waste_qty','var_qty']
@@ -369,21 +369,21 @@ export default function ConsolidatedClient() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {(() => {
                 const tabData = activeTab === '__total__' ? getTotalData(data, restTabs) : data[activeTab]
-                return [
-                  { label:'Total Transactions', val: (tabData?.hourly_txn||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                  { label:'Total Sales (KWD)',  val: (tabData?.hourly_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                  { label:'Delivery Sales',     val: (tabData?.deliv_amt||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
-                  { label:'Total Wastage',      val: (tabData?.waste_qty||[]).reduce((s:number,r:any) => s + Object.values(r.days).reduce((a:any,b:any)=>a+b,0), 0) },
+                const kpis = [
+                  { label:'Total Transactions', val: (tabData?.hourly_txn||[]).reduce((s:number,r:any) => s + (Object.values(r.days) as number[]).reduce((a:number,b:number)=>a+b,0), 0) },
+                  { label:'Total Sales (KWD)',  val: (tabData?.hourly_amt||[]).reduce((s:number,r:any) => s + (Object.values(r.days) as number[]).reduce((a:number,b:number)=>a+b,0), 0) },
+                  { label:'Delivery Sales',     val: (tabData?.deliv_amt||[]).reduce((s:number,r:any) => s + (Object.values(r.days) as number[]).reduce((a:number,b:number)=>a+b,0), 0) },
+                  { label:'Total Wastage',      val: (tabData?.waste_qty||[]).reduce((s:number,r:any) => s + (Object.values(r.days) as number[]).reduce((a:number,b:number)=>a+b,0), 0) },
                 ]
-              })().map((kpi, i) => (
-                <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
-                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{kpi.label}</p>
-                  <p className="text-lg font-semibold font-mono text-gray-900">
-                    {typeof kpi.val === 'number' ? kpi.val.toFixed(kpi.label.includes('KWD')||kpi.label.includes('Sales')||kpi.label.includes('Wastage') ? 2 : 0) : kpi.val}
-                  </p>
-                </div>
-              ))
-              }())}
+                return kpis.map((kpi, i) => (
+                  <div key={i} className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                    <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">{kpi.label}</p>
+                    <p className="text-lg font-semibold font-mono text-gray-900">
+                      {typeof kpi.val === 'number' ? kpi.val.toFixed(kpi.label.includes('KWD')||kpi.label.includes('Sales')||kpi.label.includes('Wastage') ? 2 : 0) : kpi.val}
+                    </p>
+                  </div>
+                ))
+              })()}
             </div>
           )}
 
