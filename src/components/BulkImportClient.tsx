@@ -15,22 +15,45 @@ const RESTAURANT_MAP: Record<string, string> = {
 }
 
 function decodeSheet(sheetName: string): { day: number; restaurant: string; type: string } | null {
-  const m = sheetName.match(/^(\d+)([jak])(.+)$/)
-  if (!m) return null
-  const day = parseInt(m[1])
-  const restCode = m[2]
-  const typeCode = m[3]
-  const restaurant = RESTAURANT_MAP[restCode]
-  if (!restaurant) return null
+  // Sheet naming: {day}{code} where code encodes restaurant + report type
+  // Hourly sales:   {day}js, {day}as, {day}ks
+  // Delivery sales: {day}jsd, {day}asd (ksd), {day}ksd
+  // Meal count:     {day}mj, {day}ma, {day}mk
+  // Menu mix:       {day}jp, {day}ap, {day}kp
+  // Inventory:      {day}jv, {day}av, {day}kv
 
+  const name = sheetName.toLowerCase()
+  const dayMatch = name.match(/^(\d+)/)
+  if (!dayMatch) return null
+  const day = parseInt(dayMatch[1])
+  const suffix = name.slice(dayMatch[1].length) // everything after day number
+
+  let restaurant = ''
   let type = ''
-  if (typeCode === 's') type = 'hourly_sales'
-  else if (typeCode === 'sd') type = 'delivery_sales'
-  else if (typeCode === 'ma' || typeCode === 'mj' || typeCode === 'mk') type = 'meal_count'
-  else if (typeCode === 'ap' || typeCode === 'jp' || typeCode === 'kp') type = 'menu_mix'
-  else if (typeCode === 'av' || typeCode === 'jv' || typeCode === 'kv') type = 'inventory'
+
+  // Meal count: ma=avenues, mj=jahra, mk=khiran
+  if (suffix === 'ma') { restaurant = RESTAURANT_MAP['a']; type = 'meal_count' }
+  else if (suffix === 'mj') { restaurant = RESTAURANT_MAP['j']; type = 'meal_count' }
+  else if (suffix === 'mk') { restaurant = RESTAURANT_MAP['k']; type = 'meal_count' }
+  // Delivery sales: asd/jsd/ksd
+  else if (suffix === 'asd') { restaurant = RESTAURANT_MAP['a']; type = 'delivery_sales' }
+  else if (suffix === 'jsd') { restaurant = RESTAURANT_MAP['j']; type = 'delivery_sales' }
+  else if (suffix === 'ksd') { restaurant = RESTAURANT_MAP['k']; type = 'delivery_sales' }
+  // Hourly sales: as/js/ks
+  else if (suffix === 'as') { restaurant = RESTAURANT_MAP['a']; type = 'hourly_sales' }
+  else if (suffix === 'js') { restaurant = RESTAURANT_MAP['j']; type = 'hourly_sales' }
+  else if (suffix === 'ks') { restaurant = RESTAURANT_MAP['k']; type = 'hourly_sales' }
+  // Menu mix: ap/jp/kp
+  else if (suffix === 'ap') { restaurant = RESTAURANT_MAP['a']; type = 'menu_mix' }
+  else if (suffix === 'jp') { restaurant = RESTAURANT_MAP['j']; type = 'menu_mix' }
+  else if (suffix === 'kp') { restaurant = RESTAURANT_MAP['k']; type = 'menu_mix' }
+  // Inventory: av/jv/kv
+  else if (suffix === 'av') { restaurant = RESTAURANT_MAP['a']; type = 'inventory' }
+  else if (suffix === 'jv') { restaurant = RESTAURANT_MAP['j']; type = 'inventory' }
+  else if (suffix === 'kv') { restaurant = RESTAURANT_MAP['k']; type = 'inventory' }
   else return null
 
+  if (!restaurant) return null
   return { day, restaurant, type }
 }
 
