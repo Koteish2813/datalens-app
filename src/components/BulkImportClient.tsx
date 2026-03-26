@@ -122,13 +122,21 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
     let currentCat = ''
     for (let i = headerRow + 1; i < data.length; i++) {
       const r = data[i]
-      if (r[0] && !r[1]) { currentCat = String(r[0]).trim(); continue }
-      if (!r[1] || isNaN(Number(r[1]))) continue
+      const col0 = String(r[0] ?? '').trim()
+      const col1 = r[1]
+      // Category header row: col0 has text, col1 is empty
+      if (col0 && (col1 === '' || col1 === null || col1 === undefined)) {
+        if (!col0.includes('Total')) currentCat = col0
+        continue
+      }
+      // Data row: col1 must be a real number (item code)
+      const itemCode = Number(col1)
+      if (!col1 || col1 === '' || isNaN(itemCode) || itemCode === 0) continue
       rows.push({
         restaurant_name: restaurant, date,
         scategory: currentCat,
-        item_number: String(r[1]).trim(),
-        item_name: String(r[2]).trim(),
+        item_number: String(col1).trim(),
+        item_name: String(r[2] ?? '').trim(),
         comp_qty: Number(r[3]) || 0,
         non_comp_qty: Number(r[4]) || 0,
         number_sold: Number(r[5]) || 0,
@@ -151,9 +159,11 @@ function parseSheetData(ws: any, type: string, restaurant: string, date: string)
     for (let i = headerRow + 1; i < data.length; i++) {
       const r = data[i]
       // Skip non-data rows: empty, 'Amount -' totals, non-numeric codes
-      if (!r[0]) continue
+      if (!r[0] && r[0] !== 0) continue
       const code = String(r[0]).trim()
-      if (code.startsWith('Amount') || code === '' || isNaN(Number(code))) continue
+      if (code === '' || code.startsWith('Amount') || code === 'Item Code') continue
+      const codeNum = Number(code)
+      if (isNaN(codeNum) || codeNum === 0) continue
       rows.push({
         restaurant_name: restaurant,
         date,  // Use the sheet date (day of month), NOT latest_physical
