@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
@@ -11,11 +11,18 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
+  useEffect(() => {
+    // Clear any leftover session data on login page load
+    try { sessionStorage.clear() } catch {}
+  }, [])
+
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError(error.message); setLoading(false); return }
+    // Record initial activity timestamp
+    try { sessionStorage.setItem('dl_last_active', Date.now().toString()) } catch {}
     router.push('/dashboard')
     router.refresh()
   }

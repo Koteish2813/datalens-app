@@ -2,6 +2,7 @@ import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import Sidebar from '@/components/Sidebar'
+import SessionGuard from '@/components/SessionGuard'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = createServerSupabaseClient()
@@ -12,6 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const name = profile?.full_name ?? user.email ?? ''
   return (
     <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#0f1117',overflow:'hidden'}}>
+      <SessionGuard />
       <TopBar userName={name} userRole={role} userId={user.id}/>
       <div style={{display:'flex',flex:1,overflow:'hidden'}}>
         <Sidebar role={role}/>
