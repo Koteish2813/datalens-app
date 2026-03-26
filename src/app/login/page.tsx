@@ -60,8 +60,7 @@ export default function LoginPage() {
     // Record initial activity timestamp
     try { sessionStorage.setItem('dl_last_active', Date.now().toString()) } catch {}
 
-    router.push('/dashboard')
-    router.refresh()
+    window.location.href = '/dashboard'
   }
 
   // ── Forgot Password ──────────────────────────────────────────

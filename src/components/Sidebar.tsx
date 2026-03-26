@@ -1,42 +1,29 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState } from 'react'
-import { createClient } from '@/lib/supabase'
+import { useState, useEffect } from 'react'
 
 const NAV = [
-  { href:'/dashboard',    label:'Dashboard',       roles:['super_admin','admin','sub_admin','viewer'], icon:<path d="M2 3h5v5H2zM9 3h5v5H9zM2 10h5v5H2zM9 10h5v5H9z"/> },
-  { href:'/reports',      label:'Reports',         roles:['super_admin','admin','sub_admin','viewer'], icon:<><polyline points="1,12 5,7 9,10 14,4"/><line x1="1" y1="15" x2="14" y2="15"/></> },
-  { href:'/consolidated', label:'Consolidated',    roles:['super_admin','admin','sub_admin'],          icon:<path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z"/> },
-  { href:'/compare',      label:'Compare',         roles:['super_admin','admin','sub_admin','viewer'], icon:<><line x1="1" y1="8" x2="6" y2="8"/><line x1="9" y1="8" x2="14" y2="8"/><line x1="4" y1="4" x2="4" y2="12"/><line x1="12" y1="4" x2="12" y2="12"/></> },
+  { href:'/dashboard',    label:'Dashboard',        roles:['super_admin','admin','sub_admin','viewer'], icon:<path d="M2 3h5v5H2zM9 3h5v5H9zM2 10h5v5H2zM9 10h5v5H9z"/> },
+  { href:'/reports',      label:'Reports',          roles:['super_admin','admin','sub_admin','viewer'], icon:<><polyline points="1,12 5,7 9,10 14,4"/><line x1="1" y1="15" x2="14" y2="15"/></> },
+  { href:'/consolidated', label:'Consolidated',     roles:['super_admin','admin','sub_admin'],          icon:<path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z"/> },
+  { href:'/compare',      label:'Compare',          roles:['super_admin','admin','sub_admin','viewer'], icon:<><line x1="1" y1="8" x2="6" y2="8"/><line x1="9" y1="8" x2="14" y2="8"/><line x1="4" y1="4" x2="4" y2="12"/><line x1="12" y1="4" x2="12" y2="12"/></> },
   { div:true },
-  { href:'/upload',       label:'Upload Data',     roles:['super_admin','admin'],                     icon:<><path d="M14 2H6a2 2 0 00-2 2v6"/><path d="M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3"/></> },
-  { href:'/bulk',         label:'Bulk Import',     roles:['super_admin','admin'],                     icon:<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/> },
+  { href:'/upload',       label:'Upload Data',      roles:['super_admin','admin'],                     icon:<><path d="M14 2H6a2 2 0 00-2 2v6"/><path d="M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3"/></> },
+  { href:'/bulk',         label:'Bulk Import',      roles:['super_admin','admin'],                     icon:<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/> },
   { div:true },
-  { href:'/master',       label:'Master Menu',     roles:['super_admin','admin','sub_admin'],          icon:<><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="7" x2="14" y2="7"/><line x1="1" y1="11" x2="14" y2="11"/><line x1="1" y1="15" x2="14" y2="15"/></> },
-  { href:'/recipes',      label:'Recipes & Cost',  roles:['super_admin','admin','sub_admin'],          icon:<><circle cx="8" cy="8" r="6"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></> },
-  { href:'/simulation',   label:'Price Simulation',roles:['super_admin','admin','sub_admin'],          icon:<path d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+  { href:'/master',       label:'Master Menu',      roles:['super_admin','admin','sub_admin'],          icon:<><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="7" x2="14" y2="7"/><line x1="1" y1="11" x2="14" y2="11"/><line x1="1" y1="15" x2="14" y2="15"/></> },
+  { href:'/recipes',      label:'Recipes & Cost',   roles:['super_admin','admin','sub_admin'],          icon:<><circle cx="8" cy="8" r="6"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></> },
+  { href:'/simulation',   label:'Price Simulation', roles:['super_admin','admin','sub_admin'],          icon:<path d="M13 10V3L4 14h7v7l9-11h-7z"/> },
   { div:true },
-  { href:'/manage',       label:'Manage Data',     roles:['super_admin','admin'],                     icon:<><line x1="1" y1="4" x2="14" y2="4"/><line x1="1" y1="8" x2="14" y2="8"/><line x1="1" y1="12" x2="14" y2="12"/></> },
-  { href:'/settings',     label:'Settings',        roles:['super_admin','admin'],                     icon:<><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></> },
-  { href:'/admin',        label:'Manage Users',    roles:['super_admin'],                             icon:<><circle cx="9" cy="5" r="3"/><path d="M1 14s1-4 8-4"/><path d="M13 11l2 2 4-4"/></> },
+  { href:'/manage',       label:'Manage Data',      roles:['super_admin','admin'],                     icon:<><line x1="1" y1="4" x2="14" y2="4"/><line x1="1" y1="8" x2="14" y2="8"/><line x1="1" y1="12" x2="14" y2="12"/></> },
+  { href:'/settings',     label:'Settings',         roles:['super_admin','admin'],                     icon:<><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></> },
+  { href:'/admin',        label:'Manage Users',     roles:['super_admin'],                             icon:<><circle cx="9" cy="5" r="3"/><path d="M1 14s1-4 8-4"/><path d="M13 11l2 2 4-4"/></> },
 ]
 
-export default function Sidebar({ role: initialRole }: { role: string }) {
+export default function Sidebar({ role }: { role: string }) {
   const pathname = usePathname()
-  const [role, setRole] = useState(initialRole)
   const [mobileOpen, setMobileOpen] = useState(false)
-  const supabase = createClient()
-
-  useEffect(() => {
-    async function fetchRole() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
-      if (profile?.role) setRole(profile.role)
-    }
-    fetchRole()
-  }, [])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
@@ -75,17 +62,18 @@ export default function Sidebar({ role: initialRole }: { role: string }) {
         borderRight:'1px solid #252d40',
         display:'flex', flexDirection:'column',
         flexShrink:0, overflow:'hidden'
-      }} className="hidden md:flex">
+      }}>
         <NavContent/>
       </aside>
 
       {/* Mobile bottom bar */}
-      <div className="md:hidden" style={{
+      <div style={{
+        display:'none',
         position:'fixed', bottom:0, left:0, right:0,
         background:'#161b27', borderTop:'1px solid #252d40',
-        zIndex:40, display:'flex', alignItems:'center',
+        zIndex:40, alignItems:'center',
         justifyContent:'space-around', padding:'6px 4px 8px'
-      }}>
+      }} className="mobile-nav">
         {visible.filter(i=>!i.div).slice(0,4).map(item => {
           const active = pathname === item.href
           return (
@@ -114,7 +102,7 @@ export default function Sidebar({ role: initialRole }: { role: string }) {
 
       {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden" style={{position:'fixed', inset:0, zIndex:50, display:'flex'}}>
+        <div style={{position:'fixed', inset:0, zIndex:50, display:'flex'}}>
           <div style={{flex:1, background:'rgba(0,0,0,0.6)'}} onClick={()=>setMobileOpen(false)}/>
           <div style={{width:260, background:'#161b27', borderLeft:'1px solid #252d40', display:'flex', flexDirection:'column'}}>
             <div style={{padding:'16px', borderBottom:'1px solid #252d40', display:'flex', justifyContent:'space-between', alignItems:'center'}}>

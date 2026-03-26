@@ -1,7 +1,6 @@
 'use client'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
 
 const ROLE_BADGE: Record<string,{label:string;color:string}> = {
   super_admin: { label:'Super Admin', color:'#4f8ef7' },
@@ -10,30 +9,16 @@ const ROLE_BADGE: Record<string,{label:string;color:string}> = {
   viewer:      { label:'Viewer',      color:'#8892a4' },
 }
 
-export default function TopBar({ userName, userRole, userId }: { userName:string; userRole:string; userId?:string }) {
+export default function TopBar({ userName, userRole }: { userName:string; userRole:string; userId?:string }) {
   const router = useRouter()
   const supabase = createClient()
-  const [role, setRole] = useState(userRole)
-  const [name, setName] = useState(userName)
-
-  useEffect(() => {
-    async function fetchRole() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-      const { data: profile } = await supabase.from('profiles').select('role, full_name').eq('id', user.id).single()
-      if (profile?.role) setRole(profile.role)
-      if (profile?.full_name) setName(profile.full_name)
-    }
-    fetchRole()
-  }, [])
+  const badge = ROLE_BADGE[userRole] ?? ROLE_BADGE.viewer
 
   async function logout() {
+    try { sessionStorage.clear() } catch {}
     await supabase.auth.signOut()
     router.push('/login')
-    router.refresh()
   }
-
-  const badge = ROLE_BADGE[role] ?? ROLE_BADGE.viewer
 
   return (
     <header style={{
@@ -43,7 +28,6 @@ export default function TopBar({ userName, userRole, userId }: { userName:string
       justifyContent:'space-between',
       padding:'0 24px', flexShrink:0, zIndex:50
     }}>
-      {/* Logo */}
       <div style={{display:'flex', alignItems:'center', gap:10}}>
         <div style={{
           width:30, height:30, borderRadius:8,
@@ -60,14 +44,13 @@ export default function TopBar({ userName, userRole, userId }: { userName:string
         </div>
       </div>
 
-      {/* Right */}
       <div style={{display:'flex', alignItems:'center', gap:12}}>
         <div style={{display:'flex', alignItems:'center', gap:6}}>
           <div style={{width:6, height:6, borderRadius:'50%', background:'#22c55e', boxShadow:'0 0 8px #22c55e'}}/>
           <span style={{fontSize:11, color:'#22c55e', fontWeight:600}}>Live</span>
         </div>
         <div style={{width:1, height:20, background:'#252d40'}}/>
-        <span style={{fontSize:12, color:'#8892a4'}}>{name || userName}</span>
+        <span style={{fontSize:12, color:'#8892a4'}}>{userName}</span>
         <span style={{
           fontSize:10, fontWeight:700,
           background: badge.color + '20',
@@ -78,7 +61,6 @@ export default function TopBar({ userName, userRole, userId }: { userName:string
           fontSize:11, fontWeight:600, color:'#8892a4',
           background:'transparent', border:'1px solid #252d40',
           borderRadius:8, padding:'6px 12px', cursor:'pointer',
-          transition:'all 0.15s'
         }}>Sign out</button>
       </div>
     </header>
