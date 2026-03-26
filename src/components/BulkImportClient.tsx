@@ -1,5 +1,6 @@
 'use client'
 import { useState, useRef } from 'react'
+import { C, TYPE_LABEL, TYPE_COLORS } from '@/lib/ds'
 import { createClient } from '@/lib/supabase'
 import * as XLSX from 'xlsx'
 

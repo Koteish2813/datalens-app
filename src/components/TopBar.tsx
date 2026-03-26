@@ -3,14 +3,14 @@ import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-const roleBadge: Record<string, { label: string; color: string }> = {
-  super_admin: { label: 'Super Admin', color: 'bg-blue-100 text-blue-700' },
-  admin:       { label: 'Admin',       color: 'bg-purple-100 text-purple-700' },
-  sub_admin:   { label: 'Sub-Admin',   color: 'bg-amber-100 text-amber-700' },
-  viewer:      { label: 'Viewer',      color: 'bg-gray-100 text-gray-600' },
+const ROLE_BADGE: Record<string,{label:string;color:string}> = {
+  super_admin: { label:'Super Admin', color:'#4f8ef7' },
+  admin:       { label:'Admin',       color:'#a78bfa' },
+  sub_admin:   { label:'Sub-Admin',   color:'#f59e0b' },
+  viewer:      { label:'Viewer',      color:'#8892a4' },
 }
 
-export default function TopBar({ userName, userRole, userId }: { userName: string; userRole: string; userId?: string }) {
+export default function TopBar({ userName, userRole, userId }: { userName:string; userRole:string; userId?:string }) {
   const router = useRouter()
   const supabase = createClient()
   const [role, setRole] = useState(userRole)
@@ -27,30 +27,59 @@ export default function TopBar({ userName, userRole, userId }: { userName: strin
     fetchRole()
   }, [])
 
-  const badge = roleBadge[role] ?? roleBadge.viewer
-
   async function logout() {
     await supabase.auth.signOut()
     router.push('/login')
     router.refresh()
   }
 
+  const badge = ROLE_BADGE[role] ?? ROLE_BADGE.viewer
+
   return (
-    <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-5 shrink-0 z-50">
-      <div className="flex items-center gap-2.5">
-        <div className="w-7 h-7 bg-blue-700 rounded-lg flex items-center justify-center">
-          <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" viewBox="0 0 16 16">
-            <polyline points="2,12 6,7 9,10 14,4"/>
+    <header style={{
+      height:56, background:'#161b27',
+      borderBottom:'1px solid #252d40',
+      display:'flex', alignItems:'center',
+      justifyContent:'space-between',
+      padding:'0 24px', flexShrink:0, zIndex:50
+    }}>
+      {/* Logo */}
+      <div style={{display:'flex', alignItems:'center', gap:10}}>
+        <div style={{
+          width:30, height:30, borderRadius:8,
+          background:'linear-gradient(135deg, #4f8ef7, #6d5cf7)',
+          display:'flex', alignItems:'center', justifyContent:'center'
+        }}>
+          <svg width="14" height="14" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 16 16">
+            <polyline points="1,12 5,7 9,10 15,4"/>
           </svg>
         </div>
-        <span className="font-semibold text-gray-900 text-[15px]">DataLens</span>
+        <div>
+          <span style={{fontSize:14, fontWeight:800, color:'#f1f5f9', letterSpacing:'-0.02em'}}>DataLens</span>
+          <span style={{fontSize:10, color:'#4a5568', marginLeft:8}}>Restaurant Analytics</span>
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        <span className="text-sm text-gray-500 hidden sm:block">{name || userName}</span>
-        <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${badge.color}`}>{badge.label}</span>
-        <button onClick={logout} className="text-sm text-gray-500 hover:text-gray-800 border border-gray-200 hover:border-gray-300 rounded-lg px-3 py-1.5 transition-colors">
-          Sign out
-        </button>
+
+      {/* Right */}
+      <div style={{display:'flex', alignItems:'center', gap:12}}>
+        <div style={{display:'flex', alignItems:'center', gap:6}}>
+          <div style={{width:6, height:6, borderRadius:'50%', background:'#22c55e', boxShadow:'0 0 8px #22c55e'}}/>
+          <span style={{fontSize:11, color:'#22c55e', fontWeight:600}}>Live</span>
+        </div>
+        <div style={{width:1, height:20, background:'#252d40'}}/>
+        <span style={{fontSize:12, color:'#8892a4'}}>{name || userName}</span>
+        <span style={{
+          fontSize:10, fontWeight:700,
+          background: badge.color + '20',
+          color: badge.color,
+          padding:'3px 10px', borderRadius:20
+        }}>{badge.label}</span>
+        <button onClick={logout} style={{
+          fontSize:11, fontWeight:600, color:'#8892a4',
+          background:'transparent', border:'1px solid #252d40',
+          borderRadius:8, padding:'6px 12px', cursor:'pointer',
+          transition:'all 0.15s'
+        }}>Sign out</button>
       </div>
     </header>
   )

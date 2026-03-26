@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { C, fmt as dsFmt } from '@/lib/ds'
 import { createClient } from '@/lib/supabase'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
@@ -190,7 +191,7 @@ export default function DashboardClient() {
   )
 
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-5" style={{color:C.text}}>
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>

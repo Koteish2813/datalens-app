@@ -4,19 +4,22 @@ import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase'
 
-const navItems = [
-  { href:'/dashboard',    label:'Dashboard',      roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 1h6v6H1zM9 1h6v6H9zM1 9h6v6H1zM9 9h6v6H9z' },
-  { href:'/reports',      label:'Reports',        roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 12l4-5 3 2 4-5 3 2M1 15h14' },
-  { href:'/compare',      label:'Compare',        roles:['super_admin','admin','sub_admin','viewer'], icon:'M1 8h6M9 8h6M4 4v8M12 4v8' },
-  { href:'/consolidated', label:'Consolidated',   roles:['super_admin','admin','sub_admin'],          icon:'M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z' },
-  { href:'/upload',       label:'Upload Data',    roles:['super_admin','admin'],                      icon:'M14 2H6a2 2 0 0 0-2 2v6M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3' },
-  { href:'/bulk',         label:'Bulk Import',    roles:['super_admin','admin'],                      icon:'M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12' },
-  { href:'/master',       label:'Master Menu',    roles:['super_admin','admin','sub_admin'],          icon:'M1 2h14v2H1zM1 6h14v2H1zM1 10h14v2H1zM1 14h14v2H1z' },
-  { href:'/recipes',      label:'Recipes & Cost', roles:['super_admin','admin','sub_admin'],          icon:'M8 2a6 6 0 100 12A6 6 0 008 2zM5 8h6M8 5v6' },
-  { href:'/simulation',   label:'Price Simulation',roles:['super_admin','admin','sub_admin'],          icon:'M13 10V3L4 14h7v7l9-11h-7z' },
-  { href:'/manage',       label:'Manage Data',    roles:['super_admin','admin'],                      icon:'M1 4h14M1 8h14M1 12h14', divider:true },
-  { href:'/settings',     label:'Settings',       roles:['super_admin','admin'],                      icon:'M8 1a7 7 0 100 14A7 7 0 008 1zM8 5v3l2 2' },
-  { href:'/admin',        label:'Manage Users',   roles:['super_admin'],                              icon:'M10 8a3 3 0 100-6 3 3 0 000 6zM1 14s1-4 9-4' },
+const NAV = [
+  { href:'/dashboard',    label:'Dashboard',       roles:['super_admin','admin','sub_admin','viewer'], icon:<path d="M2 3h5v5H2zM9 3h5v5H9zM2 10h5v5H2zM9 10h5v5H9z"/> },
+  { href:'/reports',      label:'Reports',         roles:['super_admin','admin','sub_admin','viewer'], icon:<><polyline points="1,12 5,7 9,10 14,4"/><line x1="1" y1="15" x2="14" y2="15"/></> },
+  { href:'/consolidated', label:'Consolidated',    roles:['super_admin','admin','sub_admin'],          icon:<path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z"/> },
+  { href:'/compare',      label:'Compare',         roles:['super_admin','admin','sub_admin','viewer'], icon:<><line x1="1" y1="8" x2="6" y2="8"/><line x1="9" y1="8" x2="14" y2="8"/><line x1="4" y1="4" x2="4" y2="12"/><line x1="12" y1="4" x2="12" y2="12"/></> },
+  { div:true },
+  { href:'/upload',       label:'Upload Data',     roles:['super_admin','admin'],                     icon:<><path d="M14 2H6a2 2 0 00-2 2v6"/><path d="M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3"/></> },
+  { href:'/bulk',         label:'Bulk Import',     roles:['super_admin','admin'],                     icon:<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/> },
+  { div:true },
+  { href:'/master',       label:'Master Menu',     roles:['super_admin','admin','sub_admin'],          icon:<><line x1="1" y1="3" x2="14" y2="3"/><line x1="1" y1="7" x2="14" y2="7"/><line x1="1" y1="11" x2="14" y2="11"/><line x1="1" y1="15" x2="14" y2="15"/></> },
+  { href:'/recipes',      label:'Recipes & Cost',  roles:['super_admin','admin','sub_admin'],          icon:<><circle cx="8" cy="8" r="6"/><line x1="5" y1="8" x2="11" y2="8"/><line x1="8" y1="5" x2="8" y2="11"/></> },
+  { href:'/simulation',   label:'Price Simulation',roles:['super_admin','admin','sub_admin'],          icon:<path d="M13 10V3L4 14h7v7l9-11h-7z"/> },
+  { div:true },
+  { href:'/manage',       label:'Manage Data',     roles:['super_admin','admin'],                     icon:<><line x1="1" y1="4" x2="14" y2="4"/><line x1="1" y1="8" x2="14" y2="8"/><line x1="1" y1="12" x2="14" y2="12"/></> },
+  { href:'/settings',     label:'Settings',        roles:['super_admin','admin'],                     icon:<><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5l1.5 1.5M3 13l1.5-1.5M11.5 4.5l1.5-1.5"/></> },
+  { href:'/admin',        label:'Manage Users',    roles:['super_admin'],                             icon:<><circle cx="9" cy="5" r="3"/><path d="M1 14s1-4 8-4"/><path d="M13 11l2 2 4-4"/></> },
 ]
 
 export default function Sidebar({ role: initialRole }: { role: string }) {
@@ -35,26 +38,30 @@ export default function Sidebar({ role: initialRole }: { role: string }) {
     fetchRole()
   }, [])
 
-  // Close mobile menu on route change
   useEffect(() => { setMobileOpen(false) }, [pathname])
 
-  const visibleItems = navItems.filter(i => i.roles.includes(role))
+  const visible = NAV.filter(i => i.div || (i.roles?.includes(role)))
 
-  const NavLinks = () => (
-    <nav className="flex flex-col gap-0.5 px-3">
-      {visibleItems.map(item => {
+  const NavContent = () => (
+    <nav style={{flex:1, overflowY:'auto', padding:'8px 10px'}}>
+      {visible.map((item, i) => {
+        if (item.div) return <div key={i} style={{height:1, background:'#252d40', margin:'8px 0'}}/>
         const active = pathname === item.href
         return (
-          <div key={item.href}>
-            {item.divider && <div className="my-2 border-t border-gray-100"/>}
-            <Link href={item.href}
-              className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${active ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}>
-              <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 16 16">
-                <path d={item.icon}/>
-              </svg>
-              {item.label}
-            </Link>
-          </div>
+          <Link key={item.href} href={item.href!} style={{
+            display:'flex', alignItems:'center', gap:10,
+            padding:'9px 10px', borderRadius:8, marginBottom:2,
+            background: active ? 'rgba(79,142,247,0.12)' : 'transparent',
+            color: active ? '#4f8ef7' : '#8892a4',
+            textDecoration:'none', transition:'all 0.15s',
+            fontSize:12, fontWeight: active ? 600 : 400,
+          }}>
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 16 16">
+              {item.icon}
+            </svg>
+            <span style={{flex:1}}>{item.label}</span>
+            {active && <div style={{width:4, height:4, borderRadius:'50%', background:'#4f8ef7', flexShrink:0}}/>}
+          </Link>
         )
       })}
     </nav>
@@ -62,50 +69,61 @@ export default function Sidebar({ role: initialRole }: { role: string }) {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside className="w-56 bg-white border-r border-gray-200 flex flex-col py-4 shrink-0 hidden md:flex">
-        <NavLinks/>
+      {/* Desktop */}
+      <aside style={{
+        width:220, background:'#161b27',
+        borderRight:'1px solid #252d40',
+        display:'flex', flexDirection:'column',
+        flexShrink:0, overflow:'hidden'
+      }} className="hidden md:flex">
+        <NavContent/>
       </aside>
 
       {/* Mobile bottom bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 flex items-center justify-around px-2 py-1 safe-bottom">
-        {/* Show only top 4 most used items + menu button */}
-        {visibleItems.slice(0, 4).map(item => {
+      <div className="md:hidden" style={{
+        position:'fixed', bottom:0, left:0, right:0,
+        background:'#161b27', borderTop:'1px solid #252d40',
+        zIndex:40, display:'flex', alignItems:'center',
+        justifyContent:'space-around', padding:'6px 4px 8px'
+      }}>
+        {visible.filter(i=>!i.div).slice(0,4).map(item => {
           const active = pathname === item.href
           return (
-            <Link key={item.href} href={item.href}
-              className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg transition-colors min-w-0 ${active ? 'text-blue-700' : 'text-gray-400'}`}>
-              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 16 16">
-                <path d={item.icon}/>
+            <Link key={item.href} href={item.href!} style={{
+              display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+              padding:'6px 10px', borderRadius:8, textDecoration:'none',
+              color: active ? '#4f8ef7' : '#4a5568',
+            }}>
+              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 16 16">
+                {item.icon}
               </svg>
-              <span className="text-[10px] font-medium truncate max-w-[52px]">{item.label.split(' ')[0]}</span>
+              <span style={{fontSize:9, fontWeight: active?700:400}}>{item.label?.split(' ')[0]}</span>
             </Link>
           )
         })}
-        {/* More button */}
-        <button onClick={() => setMobileOpen(true)}
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-lg text-gray-400 transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={1.5} strokeLinecap="round" viewBox="0 0 16 16">
-            <circle cx="2" cy="8" r="1"/><circle cx="8" cy="8" r="1"/><circle cx="14" cy="8" r="1"/>
+        <button onClick={()=>setMobileOpen(true)} style={{
+          display:'flex', flexDirection:'column', alignItems:'center', gap:2,
+          padding:'6px 10px', background:'transparent', border:'none', cursor:'pointer', color:'#4a5568'
+        }}>
+          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" viewBox="0 0 16 16">
+            <circle cx="2" cy="8" r="1.5"/><circle cx="8" cy="8" r="1.5"/><circle cx="14" cy="8" r="1.5"/>
           </svg>
-          <span className="text-[10px] font-medium">More</span>
+          <span style={{fontSize:9}}>More</span>
         </button>
       </div>
 
-      {/* Mobile full menu drawer */}
+      {/* Mobile drawer */}
       {mobileOpen && (
-        <div className="md:hidden fixed inset-0 z-50 flex">
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)}/>
-          {/* Drawer */}
-          <div className="relative ml-auto w-64 bg-white h-full flex flex-col py-4 shadow-xl">
-            <div className="flex items-center justify-between px-4 mb-3">
-              <span className="font-semibold text-gray-900">Menu</span>
-              <button onClick={() => setMobileOpen(false)} className="text-gray-400 hover:text-gray-600 p-1">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" viewBox="0 0 16 16"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
+        <div className="md:hidden" style={{position:'fixed', inset:0, zIndex:50, display:'flex'}}>
+          <div style={{flex:1, background:'rgba(0,0,0,0.6)'}} onClick={()=>setMobileOpen(false)}/>
+          <div style={{width:260, background:'#161b27', borderLeft:'1px solid #252d40', display:'flex', flexDirection:'column'}}>
+            <div style={{padding:'16px', borderBottom:'1px solid #252d40', display:'flex', justifyContent:'space-between', alignItems:'center'}}>
+              <span style={{fontSize:13, fontWeight:700, color:'#f1f5f9'}}>Menu</span>
+              <button onClick={()=>setMobileOpen(false)} style={{background:'transparent', border:'none', cursor:'pointer', color:'#8892a4'}}>
+                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 16 16"><line x1="2" y1="2" x2="14" y2="14"/><line x1="14" y1="2" x2="2" y2="14"/></svg>
               </button>
             </div>
-            <NavLinks/>
+            <NavContent/>
           </div>
         </div>
       )}

@@ -11,11 +11,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const role = profile?.role ?? 'viewer'
   const name = profile?.full_name ?? user.email ?? ''
   return (
-    <div className="h-screen flex flex-col overflow-hidden">
+    <div style={{display:'flex',flexDirection:'column',height:'100vh',background:'#0f1117',overflow:'hidden'}}>
       <TopBar userName={name} userRole={role} userId={user.id}/>
-      <div className="flex flex-1 overflow-hidden">
+      <div style={{display:'flex',flex:1,overflow:'hidden'}}>
         <Sidebar role={role}/>
-        <main className="flex-1 overflow-y-auto bg-gray-50 p-4 md:p-6 pb-24 md:pb-6">{children}</main>
+        <main style={{flex:1,overflowY:'auto',background:'#0f1117',padding:'24px',paddingBottom:'80px'}}>{children}</main>
       </div>
     </div>
   )
