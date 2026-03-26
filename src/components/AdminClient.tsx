@@ -14,9 +14,9 @@ const ROLE_COLORS: Record<Role, string> = {
   viewer:      'bg-gray-100 text-gray-600 border-gray-200',
 }
 
-export default function AdminClient({ initialProfiles }: { initialProfiles: Profile[] }) {
+export default function AdminClient() {
   const supabase = createClient()
-  const [profiles, setProfiles] = useState<Profile[]>(initialProfiles)
+  const [profiles, setProfiles] = useState<Profile[]>([])
   const [inviteEmail, setInviteEmail] = useState('')
   const [inviteRole, setInviteRole] = useState<Role>('viewer')
   const [invitePassword, setInvitePassword] = useState('')

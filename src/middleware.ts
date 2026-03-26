@@ -1,8 +1,18 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
+const PUBLIC_PATHS = ['/login', '/reset-password']
+
 export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl
+
+  // Allow public pages through immediately — no Supabase call needed
+  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({ request: { headers: request.headers } })
+
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -22,16 +32,19 @@ export async function middleware(request: NextRequest) {
       },
     }
   )
-  const { data: { session } } = await supabase.auth.getSession()
-  const { pathname } = request.nextUrl
-  if (pathname === '/login' || pathname === '/reset-password') {
-    if (session && pathname === '/login') return NextResponse.redirect(new URL('/dashboard', request.url))
-    return response
-  }
-  if (!session) return NextResponse.redirect(new URL('/login', request.url))
+
+  // Use getUser() instead of getSession() — validates JWT without extra DB call
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.redirect(new URL('/login', request.url))
+
   return response
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/reports/:path*', '/upload/:path*', '/admin/:path*', '/manage/:path*', '/settings/:path*', '/consolidated/:path*', '/master/:path*', '/recipes/:path*', '/compare/:path*', '/simulation/:path*', '/bulk/:path*', '/login'],
+  matcher: [
+    '/dashboard/:path*', '/reports/:path*', '/upload/:path*',
+    '/admin/:path*', '/manage/:path*', '/settings/:path*',
+    '/consolidated/:path*', '/master/:path*', '/recipes/:path*',
+    '/compare/:path*', '/simulation/:path*', '/bulk/:path*',
+  ],
 }

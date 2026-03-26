@@ -15,7 +15,7 @@ function fmt(n: any): string {
   return num.toFixed(3).replace(/\.?0+$/, '')
 }
 
-export default function ReportsClient({ role }: { role: string }) {
+export default function ReportsClient({ role = 'viewer' }: { role?: string }) {
   const supabase = createClient()
   const [tab, setTab] = useState<ReportType>('hourly_sales')
   const [restaurants, setRestaurants] = useState<string[]>([])
