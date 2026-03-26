@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase'
+import { createClient, startTabSession } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 
 type View = 'login' | 'forgot' | 'forgot_sent'
@@ -21,7 +21,9 @@ export default function LoginPage() {
 
   // On mount: clear session but restore remembered email if any
   useEffect(() => {
-    try { sessionStorage.clear() } catch {}
+    // Only clear tab/inactivity keys — NOT localStorage auth tokens
+    try { sessionStorage.removeItem('dl_last_active') } catch {}
+    try { sessionStorage.removeItem('dl_tab_session') } catch {}
     try {
       const remembered = localStorage.getItem(REMEMBER_EMAIL_KEY)
       const wasRemembered = localStorage.getItem(REMEMBER_ME_KEY)
@@ -57,8 +59,8 @@ export default function LoginPage() {
       }
     } catch {}
 
-    // Record initial activity timestamp
-    try { sessionStorage.setItem('dl_last_active', Date.now().toString()) } catch {}
+    // Mark this tab as active (enforces sign-out on browser close)
+    startTabSession()
 
     window.location.href = '/dashboard'
   }

@@ -14,20 +14,32 @@ export default function ResetPasswordPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  // Supabase sends the user here with a hash fragment containing the token
-  // The SDK auto-exchanges it for a session
+  // Supabase sends the user here with tokens in the URL hash
+  // e.g. /reset-password#access_token=...&type=recovery
+  // The SDK auto-exchanges it when we call getSession()
   useEffect(() => {
     async function checkSession() {
-      const { data: { session } } = await supabase.auth.getSession()
+      // Give the SDK a moment to parse the hash and exchange the token
+      const tryGet = async () => {
+        const { data: { session } } = await supabase.auth.getSession()
+        return session
+      }
+
+      let session = await tryGet()
+      if (!session) {
+        // Wait up to 2s for the hash exchange
+        await new Promise(r => setTimeout(r, 500))
+        session = await tryGet()
+      }
+      if (!session) {
+        await new Promise(r => setTimeout(r, 1000))
+        session = await tryGet()
+      }
+
       if (session) {
         setValidSession(true)
       } else {
-        // Wait briefly for the hash exchange to complete
-        setTimeout(async () => {
-          const { data: { session: s2 } } = await supabase.auth.getSession()
-          if (s2) setValidSession(true)
-          else setError('This reset link is invalid or has expired. Please request a new one.')
-        }, 800)
+        setError('This reset link is invalid or has already been used. Please request a new one.')
       }
     }
     checkSession()

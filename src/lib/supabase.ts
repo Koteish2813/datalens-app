@@ -3,53 +3,61 @@ import { createBrowserClient } from '@supabase/ssr'
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-const INACTIVITY_LIMIT = 30 * 60 * 1000 // 30 minutes in ms
-const LAST_ACTIVE_KEY = 'dl_last_active'
+export const INACTIVITY_LIMIT = 30 * 60 * 1000 // 30 minutes
+export const LAST_ACTIVE_KEY  = 'dl_last_active'
+export const TAB_SESSION_KEY  = 'dl_tab_session'  // lives in sessionStorage — dies on tab close
 
 let client: ReturnType<typeof createBrowserClient> | null = null
 
 export function createClient() {
   if (!client) {
-    client = createBrowserClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        // Do NOT persist session to localStorage — session dies when browser closes
-        persistSession: false,
-        // Still use storage for the inactivity check (sessionStorage)
-        storage: {
-          getItem: (key: string) => {
-            try { return sessionStorage.getItem(key) } catch { return null }
-          },
-          setItem: (key: string, value: string) => {
-            try { sessionStorage.setItem(key, value) } catch {}
-          },
-          removeItem: (key: string) => {
-            try { sessionStorage.removeItem(key) } catch {}
-          },
-        },
-      },
-    })
+    // Use DEFAULT storage (localStorage) so Supabase auth tokens
+    // persist correctly across redirects and the password-reset flow.
+    // We enforce "sign out on browser close" ourselves via TAB_SESSION_KEY.
+    client = createBrowserClient(SUPABASE_URL, SUPABASE_KEY)
   }
   return client
 }
 
-// Call this on every user interaction to reset the inactivity timer
+// Called once after a successful sign-in to mark this tab as active
+export function startTabSession() {
+  try {
+    sessionStorage.setItem(TAB_SESSION_KEY, '1')
+    sessionStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString())
+  } catch {}
+}
+
+// Called on every protected page load — returns true if session should be killed
+export function shouldKillSession(): boolean {
+  try {
+    // No tab session = browser was closed and reopened → kill
+    const hasTab = sessionStorage.getItem(TAB_SESSION_KEY)
+    if (!hasTab) return true
+
+    // Inactivity check
+    const last = sessionStorage.getItem(LAST_ACTIVE_KEY)
+    if (last && Date.now() - parseInt(last) > INACTIVITY_LIMIT) return true
+
+    return false
+  } catch { return false }
+}
+
 export function touchActivity() {
   try { sessionStorage.setItem(LAST_ACTIVE_KEY, Date.now().toString()) } catch {}
 }
 
-// Returns true if the user has been inactive for more than 30 minutes
 export function isInactive(): boolean {
   try {
     const last = sessionStorage.getItem(LAST_ACTIVE_KEY)
-    if (!last) return false // No record yet — treat as active
+    if (!last) return false
     return Date.now() - parseInt(last) > INACTIVITY_LIMIT
   } catch { return false }
 }
 
-// Sign out and clear all session data
 export async function forceSignOut() {
   try {
     sessionStorage.clear()
+    // Don't clear remember-me keys from localStorage — user preference should persist
     const c = createClient()
     await c.auth.signOut()
   } catch {}
