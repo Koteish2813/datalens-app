@@ -1,10 +1,11 @@
+import type { ReactNode } from 'react'
 import { createServerSupabaseClient } from '@/lib/supabase-server'
 import { redirect } from 'next/navigation'
 import TopBar from '@/components/TopBar'
 import Sidebar from '@/components/Sidebar'
 import SessionGuard from '@/components/SessionGuard'
 
-export default async function AppLayout({ children }: { children: React.ReactNode }) {
+export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = createServerSupabaseClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
