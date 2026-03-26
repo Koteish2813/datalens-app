@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties, FormEvent } from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -45,7 +46,7 @@ export default function ResetPasswordPage() {
     checkSession()
   }, [])
 
-  async function handleReset(e: React.FormEvent) {
+  async function handleReset(e: FormEvent) {
     e.preventDefault()
     setError('')
 
@@ -74,13 +75,13 @@ export default function ResetPasswordPage() {
     setTimeout(() => router.push('/login'), 3000)
   }
 
-  const inputStyle: React.CSSProperties = {
+  const inputStyle: CSSProperties = {
     width:'100%', padding:'11px 14px', fontSize:13,
     background:'#1a2035', border:'1px solid #252d40',
     borderRadius:10, color:'#f1f5f9', outline:'none',
     fontFamily:'"DM Sans",-apple-system,sans-serif',
   }
-  const labelStyle: React.CSSProperties = {
+  const labelStyle: CSSProperties = {
     display:'block', fontSize:11, fontWeight:700,
     color:'#8892a4', letterSpacing:'0.06em', marginBottom:6,
   }

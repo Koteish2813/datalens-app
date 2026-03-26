@@ -1,4 +1,5 @@
 'use client'
+import type { FormEvent } from 'react'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase'
 
@@ -35,7 +36,7 @@ export default function AdminClient() {
     setLoading(false)
   }
 
-  async function inviteUser(e: React.FormEvent) {
+  async function inviteUser(e: FormEvent) {
     e.preventDefault()
     setInviting(true); setInviteMsg(null)
     try {

@@ -1,4 +1,5 @@
 'use client'
+import type { CSSProperties, FormEvent } from 'react'
 import { useState, useEffect } from 'react'
 import { createClient, startTabSession } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -35,7 +36,7 @@ export default function LoginPage() {
   }, [])
 
   // ── Sign In ──────────────────────────────────────────────────
-  async function handleLogin(e: React.FormEvent) {
+  async function handleLogin(e: FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
 
@@ -66,7 +67,7 @@ export default function LoginPage() {
   }
 
   // ── Forgot Password ──────────────────────────────────────────
-  async function handleForgot(e: React.FormEvent) {
+  async function handleForgot(e: FormEvent) {
     e.preventDefault()
     setLoading(true); setError('')
 
@@ -85,14 +86,14 @@ export default function LoginPage() {
   }
 
   // ── Shared styles ────────────────────────────────────────────
-  const inputStyle: React.CSSProperties = {
+  const inputStyle: CSSProperties = {
     width: '100%', padding: '11px 14px', fontSize: 13,
     background: '#1a2035', border: '1px solid #252d40',
     borderRadius: 10, color: '#f1f5f9', outline: 'none',
     transition: 'border-color 0.15s',
     fontFamily: '"DM Sans",-apple-system,sans-serif',
   }
-  const labelStyle: React.CSSProperties = {
+  const labelStyle: CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 700,
     color: '#8892a4', letterSpacing: '0.06em', marginBottom: 6,
   }
