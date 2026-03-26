@@ -45,6 +45,6 @@ export const config = {
     '/dashboard/:path*', '/reports/:path*', '/upload/:path*',
     '/admin/:path*', '/manage/:path*', '/settings/:path*',
     '/consolidated/:path*', '/master/:path*', '/recipes/:path*',
-    '/compare/:path*', '/simulation/:path*', '/bulk/:path*',
+    '/compare/:path*', '/simulation/:path*', '/bulk/:path*', '/projection/:path*',
   ],
 }

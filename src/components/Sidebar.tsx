@@ -8,6 +8,7 @@ const NAV = [
   { href:'/reports',      label:'Reports',          roles:['super_admin','admin','sub_admin','viewer'], icon:<><polyline points="1,12 5,7 9,10 14,4"/><line x1="1" y1="15" x2="14" y2="15"/></> },
   { href:'/consolidated', label:'Consolidated',     roles:['super_admin','admin','sub_admin'],          icon:<path d="M9 17v-2m3 2v-4m3 4v-6M5 20h14a2 2 0 002-2V7l-5-5H5a2 2 0 00-2 2v14a2 2 0 002 2z"/> },
   { href:'/compare',      label:'Compare',          roles:['super_admin','admin','sub_admin','viewer'], icon:<><line x1="1" y1="8" x2="6" y2="8"/><line x1="9" y1="8" x2="14" y2="8"/><line x1="4" y1="4" x2="4" y2="12"/><line x1="12" y1="4" x2="12" y2="12"/></> },
+  { href:'/projection',    label:'Projection & Order', roles:['super_admin','admin','sub_admin'],          icon:<><path d="M1 10l4-6 4 4 4-6"/><path d="M13 12h2v3h-2z"/><path d="M9 9h2v6H9z"/><path d="M5 11h2v4H5z"/></> },
   { div:true },
   { href:'/upload',       label:'Upload Data',      roles:['super_admin','admin'],                     icon:<><path d="M14 2H6a2 2 0 00-2 2v6"/><path d="M14 2l4 4M18 6h-4V2M12 18v-6M9 15l3 3 3-3"/></> },
   { href:'/bulk',         label:'Bulk Import',      roles:['super_admin','admin'],                     icon:<path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/> },
