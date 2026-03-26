@@ -11,6 +11,8 @@ const SECTIONS = [
   { key:'pmix_qty',   label:'Product Mix (Qty)' },
   { key:'pmix_amt',   label:'Product Mix (Amount)' },
   { key:'meal_cnt',   label:'Meal Count' },
+  { key:'meal_qty',   label:'Meal Qty' },
+  { key:'meal_amt',   label:'Meal Amount (KWD)' },
   { key:'cons_qty',   label:'Consumption (Qty)' },
   { key:'waste_qty',  label:'Wastage (Qty)' },
   { key:'var_qty',    label:'Variance (Qty)' },
@@ -96,9 +98,11 @@ export default function ConsolidatedClient() {
           ['hourly_amt', 'Hourly Sales (KWD)', 'hour', false],
           ['deliv_txn',  'Delivery Transactions', 'hour', false],
           ['deliv_amt',  'Delivery Sales (KWD)', 'hour', false],
-          ['pmix_qty',   'Product Mix Qty', 'key', false],
+          ['pmix_qty',   'Product Mix Qty (Menu Mix)', 'key', false],
           ['pmix_amt',   'Product Mix Amount (KWD)', 'key', false],
           ['meal_cnt',   'Meal Count', 'key', false],
+          ['meal_qty',   'Meal Quantity', 'key', false],
+          ['meal_amt',   'Meal Amount (KWD)', 'key', false],
           ['cons_qty',   'Consumption Qty', 'key', true],
           ['waste_qty',  'Wastage Qty', 'key', true],
           ['var_qty',    'Variance Qty', 'key', true],
@@ -177,7 +181,7 @@ export default function ConsolidatedClient() {
   function getTotalData(data: any, rests: string[]) {
     if (!rests.length) return null
     const result: any = {}
-    const sectionKeys = ['hourly_txn','hourly_amt','deliv_txn','deliv_amt','pmix_qty','pmix_amt','meal_cnt','cons_qty','waste_qty','var_qty']
+    const sectionKeys = ['hourly_txn','hourly_amt','deliv_txn','deliv_amt','pmix_qty','pmix_amt','meal_cnt','meal_qty','meal_amt','cons_qty','waste_qty','var_qty']
     sectionKeys.forEach(sKey => {
       const merged: Record<string, Record<number, number>> = {}
       rests.forEach(rest => {
