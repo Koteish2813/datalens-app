@@ -247,16 +247,22 @@ export default function BulkImportClient() {
           await supabase.from(s.type).delete()
             .eq('restaurant_name', s.restaurant).eq('date', s.date)
 
-          // Insert in batches of 500
+          // Insert in batches of 200 (smaller = more reliable, avoids rate limits)
           const withUser = rows.map(r => ({...r, uploaded_by: user?.id}))
-          for (let b = 0; b < withUser.length; b += 500) {
-            const {error} = await supabase.from(s.type).insert(withUser.slice(b, b+500))
+          let insertedCount = 0
+          for (let b = 0; b < withUser.length; b += 200) {
+            const batch = withUser.slice(b, b+200)
+            const {error, data: inserted} = await supabase.from(s.type).insert(batch).select()
             if (error) throw new Error(error.message)
+            insertedCount += inserted?.length ?? batch.length
           }
 
-          sheets[i] = {...s, status:'done', rows:rows.length}
-          setResults(prev => prev.map((r,j) => j===i ? {...r, status:'done', rows:rows.length} : r))
-          done++; totalRows += rows.length
+          // Small delay between sheets to avoid rate limiting
+          await new Promise(r => setTimeout(r, 100))
+
+          sheets[i] = {...s, status:'done', rows:insertedCount}
+          setResults(prev => prev.map((r,j) => j===i ? {...r, status:'done', rows:insertedCount} : r))
+          done++; totalRows += insertedCount
         }
       } catch(e:any) {
         sheets[i] = {...s, status:'error', error:e.message}

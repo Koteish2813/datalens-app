@@ -86,9 +86,9 @@ export default function DashboardClient() {
     setAvgDailyTxn(mtdDays>0?mtdTxn/mtdDays:0)
 
     // Meals
-    const {data: lastMealD} = await applyRest(supabase.from('meal_count').select('meal_count').eq('date', latestDate))
-    const {data: mtdMealD}  = await applyRest(supabase.from('meal_count').select('meal_count').gte('date',mtdFrom).lte('date',today))
-    const {data: ytdMealD}  = await applyRest(supabase.from('meal_count').select('meal_count').gte('date',ytdFrom).lte('date',today))
+    const {data: lastMealD} = await applyRest(supabase.from('meal_count').select('meal_count').eq('date', latestDate)).limit(100000)
+    const {data: mtdMealD}  = await applyRest(supabase.from('meal_count').select('meal_count').gte('date',mtdFrom).lte('date',today)).limit(100000)
+    const {data: ytdMealD}  = await applyRest(supabase.from('meal_count').select('meal_count').gte('date',ytdFrom).lte('date',today)).limit(100000)
     const sumMeals = (d:any[]) => d?.reduce((s:number,r:any)=>s+(r.meal_count||0),0)??0
     setMeals({last:sumMeals(lastMealD??[]), mtd:sumMeals(mtdMealD??[]), ytd:sumMeals(ytdMealD??[]), lastDate:latestDate})
 
@@ -118,7 +118,7 @@ export default function DashboardClient() {
     setSalesByLocation(Object.entries(locMap).map(([name,sales])=>({name:name.split(' - ')[2]||name,sales,pct:totalLoc>0?sales/totalLoc*100:0})).sort((a,b)=>b.sales-a.sales))
 
     // Product mix MTD — top/bottom items
-    const {data: menuMtd} = await applyRest(supabase.from('menu_mix').select('item_name,number_sold,amount').gte('date',mtdFrom).lte('date',today))
+    const {data: menuMtd} = await applyRest(supabase.from('menu_mix').select('item_name,number_sold,amount').gte('date',mtdFrom).lte('date',today)).limit(100000)
     const itemMap: Record<string,{qty:number;kwd:number}> = {}
     menuMtd?.forEach((r:any)=>{
       if(!itemMap[r.item_name]) itemMap[r.item_name]={qty:0,kwd:0}
@@ -133,14 +133,14 @@ export default function DashboardClient() {
     setBottomItems(itemArr.sort((a,b)=>a.kwd-b.kwd).slice(0,5))
 
     // Category volume MTD
-    const {data: menuCatD} = await applyRest(supabase.from('menu_mix').select('scategory,number_sold').gte('date',mtdFrom).lte('date',today))
+    const {data: menuCatD} = await applyRest(supabase.from('menu_mix').select('scategory,number_sold').gte('date',mtdFrom).lte('date',today)).limit(100000)
     const catMap: Record<string,number> = {}
     menuCatD?.forEach((r:any)=>{ catMap[r.scategory]=(catMap[r.scategory]||0)+(r.number_sold||0) })
     const totalCat = Object.values(catMap).reduce((a,b)=>a+b,0)
     setCategoryVolume(Object.entries(catMap).map(([cat,qty])=>({cat,qty,pct:totalCat>0?qty/totalCat*100:0})).sort((a,b)=>b.qty-a.qty).slice(0,8))
 
     // Waste & variance (inventory MTD)
-    const {data: invMtd} = await applyRest(supabase.from('inventory').select('item_name,wastage,variance,average_price,restaurant_name').gte('date',mtdFrom).lte('date',today))
+    const {data: invMtd} = await applyRest(supabase.from('inventory').select('item_name,wastage,variance,average_price,restaurant_name').gte('date',mtdFrom).lte('date',today)).limit(100000)
     const wasteMap: Record<string,{waste:number;total:number}> = {}
     const varMap: Record<string,{variance:number;location:string}> = {}
     invMtd?.forEach((r:any)=>{

@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
   async function fetchData(table: string, cols: string) {
     let q = supabase.from(table).select(cols).gte('date', dateFrom).lte('date', dateTo)
     if (restaurant !== 'all') q = q.eq('restaurant_name', restaurant)
+    // Override Supabase default 1000-row limit — reports can have 10k+ rows per month
+    q = q.limit(100000)
     const { data } = await q
     return data ?? []
   }

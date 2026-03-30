@@ -62,8 +62,8 @@ export default function ProjectionClient() {
   async function loadData() {
     if (!baseFrom || !baseTo) return
     setLoading(true)
-    let hq = supabase.from('hourly_sales').select('restaurant_name,date,hour,no_of_tickets,net_sales,subtotal').gte('date',baseFrom).lte('date',baseTo)
-    let iq = supabase.from('inventory').select('restaurant_name,date,item_code,item_name,unit,consumption,average_price').gte('date',baseFrom).lte('date',baseTo)
+    let hq = supabase.from('hourly_sales').select('restaurant_name,date,hour,no_of_tickets,net_sales,subtotal').gte('date',baseFrom).lte('date',baseTo).limit(100000)
+    let iq = supabase.from('inventory').select('restaurant_name,date,item_code,item_name,unit,consumption,average_price').gte('date',baseFrom).lte('date',baseTo).limit(100000)
     if (selectedRest !== 'all') { hq = hq.eq('restaurant_name',selectedRest); iq = iq.eq('restaurant_name',selectedRest) }
     const [hr, ir] = await Promise.all([hq, iq])
     setHourlySales(hr.data??[])
